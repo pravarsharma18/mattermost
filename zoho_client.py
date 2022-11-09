@@ -48,8 +48,8 @@ class ZohoClient:
         p_id = ZohoSqlClient.sql_get("portals", "id")
         for portal in portal_ids:
             values = portal.values()
-            print(values)
             portal_list = [i for i in values]
+            print
             li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                 portal_list)]
             # pprint(li)
