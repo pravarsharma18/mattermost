@@ -57,21 +57,26 @@ class MattermostClient:
             "cliq_channels", "name, channel_id")
         for zoho_channel in zoho_channels:
             users = ZohoSqlClient.sql_get(
-                'cliq_channel_members', 'email', f"channel_id='zoho_channel['channel_id']'")
+                'cliq_channel_members', 'email,user_role', f"channel_id='{zoho_channel['channel_id']}'")  # only channel members
             channel = MatterSqlClient.sql_get(
                 'channels', "id", f"name='{zoho_channel['name'].split('#')[1]}'")  # getting the mattermost channels id. this is to prevent duplicate values
 
             for user in users:
-                # find mattermost user's id
-                if "system_admin" in user['roles']:
+                user_id = MatterSqlClient.sql_get(
+                    'users', 'id', f"email='{user['email']}'")
+                if "super_admin" in user['user_role']:
                     schemeadmin = json.dumps(True)
                 else:
                     schemeadmin = json.dumps(False)
-                values = [channel[0]['id'], user['id'], "", 0, 0, 0, json.dumps(
+                values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
                     notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
                 MatterSqlClient.sql_post(
                     table_name="channelmembers", attrs=keys, values=values)
 
+    def main(self):
+        self.insert_channels()
+        self.insert_channel_members()
+
 
 if __name__ == "__main__":
-    c = MattermostClient().insert_channel_members()
+    c = MattermostClient().main()

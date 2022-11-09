@@ -12,7 +12,7 @@ import csv
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.8223d49d62fe11f6809e2adeafa0314f.e8d0a79395cc14f8b4df3222f0bf9abe"
+    access_token = "1000.e14fcf3cc18c6cf30cc6b35cc71cc00f.24b4dd1da06555d40f93259f3a862fee"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -132,6 +132,7 @@ class ZohoClient:
         portals and projects must be saved before others
         """
         self.get_all_users()
+        self.get_channel_members()
         self.bulk_channels()
         self.bulk_conversation()
         self.bulk_messages()

@@ -47,23 +47,25 @@ class ZohoClient:
             sys.exit()
         p_id = ZohoSqlClient.sql_get("portals", "id")
         for portal in portal_ids:
-            values = portal.values()
-            portal_list = [i for i in values]
-            print
+            keys = list(portal.keys())
+            values = list(portal.values())
+            columns = ZohoSqlClient.get_columns("portals")
+            new_columns = [i for i in keys if i not in columns]
+            if new_columns:  # Alter table columns as per field from api.
+                for column in new_columns:
+                    ZohoSqlClient.update_table_column(
+                        "portals", f"{column}")
             li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                portal_list)]
-            # pprint(li)
-            # print()
-            # pprint(portal.keys())
-            break
-            # if p_id:
-            #     for i in p_id:
-            #         if not int(i['id']) == portal['id']:
-            #             ZohoSqlClient.sql_post(
-            #                 table_name="portals", attrs=portal.keys(), values=li)
-            # else:
-            #     ZohoSqlClient.sql_post(
-            #         table_name="portals", attrs=portal.keys(), values=li)
+                values)]
+
+            if p_id:
+                for i in p_id:
+                    if not int(i['id']) == portal['id']:
+                        ZohoSqlClient.sql_post(
+                            table_name="portals", attrs=portal.keys(), values=li)
+            else:
+                ZohoSqlClient.sql_post(
+                    table_name="portals", attrs=portal.keys(), values=li)
         print(Fore.GREEN + "## Portals saved in db ##")
 
     def save_projects_data(self) -> None:
@@ -101,7 +103,6 @@ class ZohoClient:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
         project_ids = ZohoSqlClient.sql_get("projects", "id")
         p_id = ZohoSqlClient.sql_get("users", "id")
-        # print(portal_ids)
         for portal_id in portal_ids:
             for project_id in project_ids:
                 status_code, users = self.get_project_api(
@@ -183,6 +184,6 @@ class ZohoClient:
 
 if __name__ == '__main__':
     print(Fore.YELLOW + "\n<========Saving Zoho Data in DB=========>\n")
-    ZohoClient().save_portal_data()
+    ZohoClient().main()
     # ZohoClient().save_users_data()
     # ZohoClient().remove_duplicate_entries_from_user_data()
