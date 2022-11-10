@@ -13,7 +13,7 @@ class ZohoClient:
     zoho_project_base_url = "https://projectsapi.zoho.in/"
     zoho_chat_base_url = "https://cliq.zoho.in/api/v2/"
 
-    access_token = "1000.78ea65dbe19b001f2279215247fcb2f1.8fd7ce10fcca9cba63de8d95e745376d"
+    access_token = "1000.f0454f9a1b50704355431115deb692e5.590ad04690ea23a2f96daafc500ba92f"
     # restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/
 
     def get_project_api(self, path) -> Tuple[int, dict]:

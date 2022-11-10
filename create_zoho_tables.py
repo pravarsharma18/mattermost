@@ -150,8 +150,11 @@ class CreateZohoTables:
 
         query = '''
             CREATE TABLE if not exists cliq_chats (
-                title varchar(255),chat_id varchar(255),participant_count int,total_message_count int,
-                creator_id varchar(255),creation_time varchar(255),last_modified_time varchar(255)
+                chat_id varchar(255),chat_type varchar(255),creation_time varchar(255),
+                creator_id varchar(255),last_message_info text, last_modified_time varchar(255),
+                name varchar(255),participant_count varchar(255),pinned boolean,
+                recipients_summary text,removed boolean,unread_message_count varchar(255),
+                unread_time varchar(255)
             );
         '''
         mycursor.execute(query)
@@ -163,9 +166,8 @@ class CreateZohoTables:
 
         query = '''
             CREATE TABLE if not exists cliq_messages (
-                id varchar(255),is_read boolean,revision int,sender text,time varchar(255),
-                type varchar(255), replied_to text, mentions text, ack_key varchar(255),
-                content text, chat_id varchar(255)
+                ack_key varchar(255), content text, id varchar(255), is_read boolean, revision int, 
+                sender text, time varchar(255), type varchar(255), chat_id varchar(255)
             );
         '''
         mycursor.execute(query)

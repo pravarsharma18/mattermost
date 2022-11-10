@@ -195,6 +195,26 @@ class MatterSqlClient:
         cls.mattermydb.commit()
 
     @classmethod
+    def add_column(cls, table_name, column_name, data_type):
+        mycursor = cls.get_cursor()
+        query = f"""
+            ALTER TABLE {table_name}
+            ADD {column_name} {data_type};
+        """
+        mycursor.execute(query)
+        cls.mattermydb.commit()
+
+    @classmethod
+    def delete_column(cls, table_name, column_name):
+        mycursor = cls.get_cursor()
+        query = f"""
+            ALTER TABLE {table_name}
+            DROP COLUMN {column_name};
+        """
+        mycursor.execute(query)
+        cls.mattermydb.commit()
+
+    @classmethod
     def get_columns(cls, table_name) -> list:
         mycursor = cls.get_cursor()
         query = f"select column_name from information_schema.columns where table_name = '{table_name}' order by ordinal_position"
