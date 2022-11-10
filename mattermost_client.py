@@ -28,7 +28,7 @@ class MattermostClient:
 
     def create_user_data(self) -> list:
         users = ZohoSqlClient.sql_get(
-            "users", "name, role, email,portal_role_name")
+            "portal_users", "name, role, email,role_name")
 
         # removing duplicate records logic
         df = pd.DataFrame(users)
@@ -42,7 +42,7 @@ class MattermostClient:
             print(Fore.RED + "Zoho Database might be empty.")
             sys.exit()
         for user in users:
-            if user['portal_role_name'].lower() == ("administrator" or "manager"):
+            if user['role_name'].lower() == ("administrator" or "manager"):
                 roles = "system_user system_admin"
             else:
                 roles = "system_user"
@@ -83,17 +83,18 @@ class MattermostClient:
         print(Fore.GREEN + "## Inserted User data ##")
 
     def insert_team_data(self) -> None:
-        users = MatterSqlClient.sql_get(
-            "users", 'email', "roles like '%system_admin%'")
+        portals = ZohoSqlClient.sql_get(
+            "portals", "name")
+        users = ZohoSqlClient.sql_get(
+            "portal_users", 'email', "role like '%Portal Owner%'")
         keys = MatterSqlClient.get_columns("teams")
-        values = [self.generate_id(
-            26), self.get_timestamp(), self.get_timestamp(), 0, "Trootech", "trootech", "", f"{users[0]['email']}", "O", "", "", self.generate_id(32), json.dumps(None), json.dumps(False), 0, json.dumps(False), json.dumps(False)]
-        try:
+        for portal in portals:
+            values = [self.generate_id(
+                26), self.get_timestamp(), self.get_timestamp(), 0, portal['name'], portal['name'].lower(), "", f"{users[0]['email']}", "O", "", "", self.generate_id(32), json.dumps(None), json.dumps(False), 0, json.dumps(False), json.dumps(False)]
             MatterSqlClient.sql_post(
                 table_name="teams", attrs=keys, values=values)
-            print(Fore.GREEN + "## Inserted Teams data ##")
-        except (Exception, psycopg2.Error) as error:
-            print(Fore.RED + "Failed to insert record into mobile table", error)
+
+        print(Fore.GREEN + "## Inserted Teams data ##")
 
     def create_channel(self) -> None:
         team = MatterSqlClient.sql_get("teams", "id")
@@ -133,27 +134,29 @@ class MattermostClient:
         print(Fore.GREEN + "## Channels data saved ##")
 
     def insert_team_members_data(self) -> None:
-        team = MatterSqlClient.sql_get(
-            'teams', 'id', "name='trootech'")
-        users = MatterSqlClient.sql_get(
-            'users', 'id,roles,username', "username not in ('channelexport','system-bot','boards','playbooks','appsbot','feedbackbot')")
+        teams = MatterSqlClient.sql_get('teams', 'id')
+        users = ZohoSqlClient.sql_get(
+            'portal_users', 'id,role_name,name')
         keys = MatterSqlClient.get_columns("teammembers")
-        for user in users:
-            if "system_admin" in user['roles']:
-                schemeadmin = json.dumps(True)
-            else:
-                schemeadmin = json.dumps(False)
-            values = [team[0]['id'], user['id'], "", 0,
-                      json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
-
-            MatterSqlClient.sql_post(
-                table_name="teammembers", attrs=keys, values=values)
+        for team in teams:
+            for user in users:
+                if user['role_name'].lower() == "administrator":
+                    schemeadmin = json.dumps(True)
+                else:
+                    schemeadmin = json.dumps(False)
+                user_id = MatterSqlClient.sql_get(
+                    'users', 'id', f"username='{user['name']}'")
+                values = [team['id'], user_id[0]['id'], "", 0,
+                          json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
+                # print("user_id", user_id, user['name'])
+                MatterSqlClient.sql_post(
+                    table_name="teammembers", attrs=keys, values=values)
         print(Fore.GREEN + "## Inserted Team Members data ##")
 
     def insert_focalboard_boards_data(self) -> None:
         keys = MatterSqlClient.get_columns("focalboard_boards")
-        team = MatterSqlClient.sql_get('teams', 'id', "name='trootech'")
-        project_users = ZohoSqlClient.sql_get(
+        teams = MatterSqlClient.sql_get('teams', 'id')
+        projects = ZohoSqlClient.sql_get(
             'projects', 'created_by,name,description,created_date,updated_date')
         card = CardProperties(name="Select", type="select", option_names=[
             "Backlog", "Open", "In Progress", "PR-Submitted", "In Review", "Re-open", "Closed"])
@@ -161,24 +164,28 @@ class MattermostClient:
         multi_person = CardProperties(name="Assignee", type="multiPerson")
         card_properties = [
             card.get_cards(), person.get_cards(), multi_person.get_cards()]
-        for project_user in project_users:
-            user_id = MatterSqlClient.sql_get(
-                'users', 'id', f"username='{project_user['created_by']}'")
-            values = [self.generate_id(26), datetime.now(
-            ), team[0]['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project_user['name'], BeautifulSoup(project_user['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project_user['created_date']), self.get_timestamp_from_date(project_user['updated_date']), 0, ""]
-            MatterSqlClient.sql_post(
-                table_name="focalboard_boards", attrs=keys, values=values)
+        for team in teams:
+            for project in projects:
+                user_id = MatterSqlClient.sql_get(
+                    'users', 'id', f"username='{project['created_by']}'")
+                values = [self.generate_id(26), datetime.now(
+                ), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(project['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project['created_date']), self.get_timestamp_from_date(project['updated_date']), 0, ""]
+                MatterSqlClient.sql_post(
+                    table_name="focalboard_boards", attrs=keys, values=values)
         print(Fore.GREEN + "## Inserted focalboard data ##")
 
     def insert_focalboard_board_members_data(self) -> None:
         keys = MatterSqlClient.get_columns("focalboard_board_members")
         boards = MatterSqlClient.sql_get(
-            'focalboard_boards', 'id,created_by', "created_by!='system'")
-        users = MatterSqlClient.sql_get(
-            'users', 'id,roles', f"username not in ('channelexport','system-bot','boards','playbooks','appsbot','feedbackbot')")
+            'focalboard_boards', 'id,title,created_by', "created_by!='system'")
         for board in boards:
+            users = ZohoSqlClient.sql_get(
+                'project_users', 'name,portal_role_name', f"project_name like '%{board['title']}%'")
+            # print(users)
             for user in users:
-                if "system_admin" in user['roles']:
+                user_id = MatterSqlClient.sql_get(
+                    'users', 'id', f"username='{user['name']}'")
+                if ("Administrator" or "Manager") in user['portal_role_name']:
                     scheme_admin = True
                     scheme_editor = True
                     scheme_commenter = True
@@ -188,7 +195,7 @@ class MattermostClient:
                     scheme_editor = False
                     scheme_commenter = True
                     scheme_viewer = True
-                values = [board['id'], user['id'], "", json.dumps(
+                values = [board['id'], user_id[0]['id'], "", json.dumps(
                     scheme_admin), json.dumps(scheme_editor), json.dumps(scheme_commenter), json.dumps(scheme_viewer)]
                 MatterSqlClient.sql_post(
                     table_name="focalboard_board_members", attrs=keys, values=values)
@@ -296,6 +303,7 @@ if __name__ == "__main__":
     # client.save_focalboard_boards()
     # client.save_focalboard_board_members()
     # client.create_team()
-    # client.create_channel()
     client.main()
+    # client.insert_channel_members_data()
+    # client.insert_focalboard_board_members_data()
     # client.insert_focalblocks_card_data()

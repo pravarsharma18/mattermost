@@ -12,7 +12,7 @@ import csv
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.e14fcf3cc18c6cf30cc6b35cc71cc00f.24b4dd1da06555d40f93259f3a862fee"
+    access_token = "1000.78ea65dbe19b001f2279215247fcb2f1.8fd7ce10fcca9cba63de8d95e745376d"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -22,14 +22,13 @@ class ZohoClient:
         }
         headers.update(header)
         r = requests.get(url, headers=headers)
-        print("******************", r)
+        # print("******************", r)
         return r.status_code, r.text  # .json()
 
     def get_all_users(self):
         keys = ZohoSqlClient.get_columns("cliq_users")
         s, data = self.get_chat_api('api/v2/users')
         data = json.loads(data)
-        print(type(data))
         users = []
         users.extend(data['data'])
         if data['has_more']:
@@ -131,15 +130,20 @@ class ZohoClient:
         """
         portals and projects must be saved before others
         """
+        time.sleep(1)
         self.get_all_users()
-        self.get_channel_members()
+        time.sleep(1)
         self.bulk_channels()
+        time.sleep(1)
+        self.get_channel_members()
+        time.sleep(1)
         self.bulk_conversation()
+        time.sleep(1)
         self.bulk_messages()
 
 
 if __name__ == '__main__':
     print(Fore.YELLOW + "\n<========Saving Zoho Data in DB=========>\n")
-    ZohoClient().get_channel_members()
+    ZohoClient().main()
     # ZohoClient().save_users_data()
     # ZohoClient().remove_duplicate_entries_from_user_data()

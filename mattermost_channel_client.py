@@ -37,10 +37,9 @@ class MattermostClient:
                 "users", "id", f"email='{channel['creator_id']}'")  # to be implemented
             values = [self.generate_id(26), channel['creation_time'], channel['creation_time'], 0, team[0]['id'],
                       "O", channel['name'].split('#')[1], channel['name'].split('#')[1], "", "", channel['creation_time'], channel['total_message_count'], 0, "", 0, self.get_timestamp()]
-
             MatterSqlClient.sql_post(
                 table_name='channels', attrs=keys, values=values)
-        print("Channel Inserted")
+        print(Fore.GREEN + "Channel Inserted")
 
     def insert_channel_members(self):
         # users = MatterSqlClient.sql_get(
@@ -60,7 +59,6 @@ class MattermostClient:
                 'cliq_channel_members', 'email,user_role', f"channel_id='{zoho_channel['channel_id']}'")  # only channel members
             channel = MatterSqlClient.sql_get(
                 'channels', "id", f"name='{zoho_channel['name'].split('#')[1]}'")  # getting the mattermost channels id. this is to prevent duplicate values
-
             for user in users:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"email='{user['email']}'")
@@ -72,6 +70,7 @@ class MattermostClient:
                     notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
                 MatterSqlClient.sql_post(
                     table_name="channelmembers", attrs=keys, values=values)
+        print(Fore.GREEN + "Channle Members Inserted")
 
     def main(self):
         self.insert_channels()

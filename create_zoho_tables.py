@@ -56,20 +56,33 @@ class CreateZohoTables:
         ZohoSqlClient.zohomydb.commit()
         print(Fore.GREEN + "## Projects table created ##")
 
-    def users(self):
+    def project_users(self):
         mycursor = ZohoSqlClient.zohomydb.cursor()
         query = '''
-            CREATE TABLE if not exists users (
+            CREATE TABLE if not exists project_users (
                 profile_type varchar(255),role varchar(255),portal_role_name varchar(255),
                 active varchar(255),zpuid varchar(255),project_profile_id varchar(255),
                 profile_id varchar(255),name varchar(255),portal_profile_name varchar(255),
                 portal_role_id varchar(255),id varchar(255),email varchar(255),chat_access varchar(255),
-                is_resource varchar(255)
+                is_resource varchar(255), project_name varchar(255)
             );
         '''
         mycursor.execute(query)
         ZohoSqlClient.zohomydb.commit()
-        print(Fore.GREEN + "## Users table created ##")
+        print(Fore.GREEN + "## Project Users table created ##")
+
+    def portal_users(self):
+        mycursor = ZohoSqlClient.zohomydb.cursor()
+        query = '''
+            CREATE TABLE if not exists portal_users (
+                active boolean, email varchar(255), id varchar(255), is_resource boolean, name varchar(255), 
+                profile_id varchar(255), profile_name varchar(255), profile_type varchar(255), role varchar(255), 
+                role_id varchar(255), role_name varchar(255), zpuid varchar(255)
+            );
+        '''
+        mycursor.execute(query)
+        ZohoSqlClient.zohomydb.commit()
+        print(Fore.GREEN + "## Portal Users table created ##")
 
     def tasks(self):
         mycursor = ZohoSqlClient.zohomydb.cursor()
@@ -175,7 +188,8 @@ class CreateZohoTables:
     def main(self):
         self.portals()
         self.projects()
-        self.users()
+        self.project_users()
+        self.portal_users()
         self.tasks()
         self.cliq_users()
         self.cliq_channels()

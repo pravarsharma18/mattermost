@@ -16,6 +16,10 @@ class DeleteMattermostTables:
         MatterSqlClient.sql_delete("teammembers")
         print(Fore.RED + "**TeamMembers Deleted**")
 
+    def truncate_channles(self) -> None:
+        MatterSqlClient.sql_delete("channels")
+        print(Fore.RED + "**Channels Deleted**")
+
     def truncate_channlemembers(self) -> None:
         MatterSqlClient.sql_delete("channelmembers")
         print(Fore.RED + "**ChannelMembers Deleted**")
@@ -42,6 +46,7 @@ class DeleteMattermostTables:
         self.truncate_users()
         self.truncate_teams()
         self.truncate_teammembers()
+        self.truncate_channles()
         self.truncate_channlemembers()
         self.truncate_focalboard_board_members()
         self.truncate_focalboard_blocks()
@@ -61,15 +66,45 @@ class DeleteZohoTables:
         ZohoSqlClient.sql_delete("tasks")
         print(Fore.RED + "**Tasks Deleted**")
 
-    def truncate_users(self) -> None:
-        ZohoSqlClient.sql_delete("users")
-        print(Fore.RED + "**Users Deleted**")
+    def truncate_portal_users(self) -> None:
+        ZohoSqlClient.sql_delete("portal_users")
+        print(Fore.RED + "**Portal Users Deleted**")
+
+    def truncate_project_users(self) -> None:
+        ZohoSqlClient.sql_delete("project_users")
+        print(Fore.RED + "**Project Users Deleted**")
+
+    def truncate_cliq_users(self) -> None:
+        ZohoSqlClient.sql_delete("cliq_users")
+        print(Fore.RED + "**Cliq Users Deleted**")
+
+    def truncate_cliq_messages(self) -> None:
+        ZohoSqlClient.sql_delete("cliq_messages")
+        print(Fore.RED + "**Cliq Messages Deleted**")
+
+    def truncate_cliq_chats(self) -> None:
+        ZohoSqlClient.sql_delete("cliq_chats")
+        print(Fore.RED + "**Cliq Chats Deleted**")
+
+    def truncate_cliq_channels(self) -> None:
+        ZohoSqlClient.sql_delete("cliq_channels")
+        print(Fore.RED + "**Cliq Channels Deleted**")
+
+    def truncate_cliq_channel_members(self) -> None:
+        ZohoSqlClient.sql_delete("cliq_channel_members")
+        print(Fore.RED + "**Cliq Channel Members Deleted**")
 
     def main(self) -> None:
         self.truncate_portals()
         self.truncate_projects()
         self.truncate_tasks()
-        self.truncate_users()
+        self.truncate_portal_users()
+        self.truncate_project_users()
+        self.truncate_cliq_users()
+        self.truncate_cliq_messages()
+        self.truncate_cliq_chats()
+        self.truncate_cliq_channels()
+        self.truncate_cliq_channel_members()
 
 
 if __name__ == '__main__':

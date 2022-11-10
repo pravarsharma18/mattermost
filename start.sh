@@ -12,8 +12,11 @@ python3 truncate_tables.py
 
 python3 zoho_client.py
 
+python3 zoho_cliq_client.py
+
 ### Get Insert in Mattermost DB
 
 python3 mattermost_client.py
+python3 mattermost_channel_client.py
 
-echo "Data Migration Completed."
+echo "<============================Data Migration Completed============================>"

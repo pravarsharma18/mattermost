@@ -1,5 +1,5 @@
 
-from sql import MatterSqlClient
+from sql import MatterSqlClient, ZohoSqlClient
 import json
 
 
@@ -25,3 +25,11 @@ def get_owners_id(owners) -> list:
         except:
             pass
     return owners_id
+
+
+def create_new_column(old_columns, columns, table_name):
+    new_columns = [i for i in old_columns if i not in columns]
+    if new_columns:  # Alter table columns as per field from api.
+        for column in new_columns:
+            ZohoSqlClient.update_table_column(
+                table_name, f"{column}")
