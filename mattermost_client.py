@@ -11,7 +11,7 @@ from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
 import pandas as pd
-from utils import card_propeties_values_id, card_propety_id, get_owners_id
+from utils import card_propeties_values_id, card_propety_id, get_owners_id, get_owners_id_by_email, remove_punctions
 
 
 class MattermostClient:
@@ -29,13 +29,6 @@ class MattermostClient:
     def create_user_data(self) -> list:
         users = ZohoSqlClient.sql_get(
             "portal_users", "name, role, email,role_name")
-
-        # removing duplicate records logic
-        df = pd.DataFrame(users)
-        df = df.drop_duplicates(['name'], keep='first')
-        users = df.to_dict('records')
-        # removing duplicate records logic
-
         li = []
         keys = "id,createat,updateat,deleteat,username,password,authservice,email,nickname,firstname,lastname,emailverified,roles,allowmarketing,props,notifyprops,lastpasswordupdate,lastpictureupdate,failedattempts,locale,mfasecret,position,mfaactive,timezone"
         if not users:
@@ -78,6 +71,7 @@ class MattermostClient:
             project_list = [i for i in values]
             users_values = [json.loads(json.dumps(v)) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int) or isinstance(v, str)) else v for i, v in enumerate(
                 project_list)]
+
             MatterSqlClient.sql_post(
                 table_name="users", attrs=user.keys(), values=users_values)
         print(Fore.GREEN + "## Inserted User data ##")
@@ -136,7 +130,7 @@ class MattermostClient:
     def insert_team_members_data(self) -> None:
         teams = MatterSqlClient.sql_get('teams', 'id')
         users = ZohoSqlClient.sql_get(
-            'portal_users', 'id,role_name,name')
+            'portal_users', 'id,role_name,email')
         keys = MatterSqlClient.get_columns("teammembers")
         for team in teams:
             for user in users:
@@ -145,7 +139,7 @@ class MattermostClient:
                 else:
                     schemeadmin = json.dumps(False)
                 user_id = MatterSqlClient.sql_get(
-                    'users', 'id', f"username='{user['name']}'")
+                    'users', 'id', f"email='{user['email']}'")
                 values = [team['id'], user_id[0]['id'], "", 0,
                           json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
                 # print("user_id", user_id, user['name'])
@@ -167,7 +161,7 @@ class MattermostClient:
         for team in teams:
             for project in projects:
                 user_id = MatterSqlClient.sql_get(
-                    'users', 'id', f"username='{project['created_by']}'")
+                    'users', 'id', f"username like '%{project['created_by']}%'")
                 values = [self.generate_id(26), datetime.now(
                 ), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(project['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project['created_date']), self.get_timestamp_from_date(project['updated_date']), 0, ""]
                 MatterSqlClient.sql_post(
@@ -180,11 +174,11 @@ class MattermostClient:
             'focalboard_boards', 'id,title,created_by', "created_by!='system'")
         for board in boards:
             users = ZohoSqlClient.sql_get(
-                'project_users', 'name,portal_role_name', f"project_name like '%{board['title']}%'")
+                'project_users', 'email,portal_role_name', f"project_name like '%{board['title']}%'")
             # print(users)
             for user in users:
                 user_id = MatterSqlClient.sql_get(
-                    'users', 'id', f"username='{user['name']}'")
+                    'users', 'id', f"email='{user['email']}'")
                 if ("Administrator" or "Manager") in user['portal_role_name']:
                     scheme_admin = True
                     scheme_editor = True
@@ -239,9 +233,10 @@ class MattermostClient:
             # print(person_id)
             # print(assign_id)
             for task in tasks:
-                assignees = list(owner['name'].strip()
+                assignees = list(owner['email']
                                  for owner in json.loads(task['details'])['owners'])
-                assignee_ids = get_owners_id(assignees)
+                assignee_ids = get_owners_id_by_email(assignees)
+                print(assignee_ids)
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"username like '%{task['created_person']}%'")
                 if board['title'] == task['project_name']:

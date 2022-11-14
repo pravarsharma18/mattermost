@@ -1,3 +1,4 @@
+import pandas as pd
 import requests
 from pprint import pprint
 import json
@@ -6,14 +7,14 @@ from sql import ZohoSqlClient
 import sys
 from typing import Tuple
 
-from utils import create_new_column
+from utils import create_new_column, remove_punctions
 
 
 class ZohoClient:
     zoho_project_base_url = "https://projectsapi.zoho.in/"
     zoho_chat_base_url = "https://cliq.zoho.in/api/v2/"
 
-    access_token = "1000.f0454f9a1b50704355431115deb692e5.590ad04690ea23a2f96daafc500ba92f"
+    access_token = "1000.484ef6b6012e622f139edbf7bbae66dc.d5af0a29c8daff768f959935a9d77b8b"
     # restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/
 
     def get_project_api(self, path) -> Tuple[int, dict]:
@@ -106,7 +107,12 @@ class ZohoClient:
                 f"restapi/portal/{portal_id['id']}/users/")
             if not status_code in range(200, 299):
                 return users
-            for user in users['users']:
+            # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+            df = pd.DataFrame(users['users'])
+            df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+            users = df.to_dict('records')
+
+            for user in users:
                 keys = list(user.keys())
                 columns = ZohoSqlClient.get_columns("portal_users")
                 # Alter table columns as per field from api.
@@ -121,7 +127,6 @@ class ZohoClient:
         print(Fore.GREEN + "## Portal Users saved in db ##")
 
     def save_project_users_data(self) -> None:
-
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
         project_ids = ZohoSqlClient.sql_get("projects", "id,name")
         for portal_id in portal_ids:
@@ -130,7 +135,11 @@ class ZohoClient:
                     f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
                 if not status_code in range(200, 299):
                     return users
-                for user in users['users']:
+                # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+                df = pd.DataFrame(users['users'])
+                df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+                users = df.to_dict('records')
+                for user in users:
                     keys = list(user.keys())
                     columns = ZohoSqlClient.get_columns("project_users")
 

@@ -11,7 +11,7 @@ from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
 import pandas as pd
-from utils import card_propeties_values_id, card_propety_id, get_owners_id
+from utils import card_propeties_values_id, card_propety_id, get_owners_id, remove_punctions
 
 
 class MattermostClient:
@@ -89,7 +89,7 @@ class MattermostClient:
                 rec_ids = []
                 for recipient_summary in recipient_summaries:
                     user_id = MatterSqlClient.sql_get(
-                        'users', 'id', f"username like '%{recipient_summary['name']}%'")
+                        'users', 'id, username', f"username like '%{remove_punctions(recipient_summary['name'])}%'")
                     rec_ids.append(user_id[0]['id'])
                 rec_ids = "__".join(rec_ids)
 
@@ -99,7 +99,7 @@ class MattermostClient:
                 creator_id = MatterSqlClient.sql_get(
                     "users", "id", f"email='{user_email[0]['email_id']}'")
                 values = [self.generate_id(26), self.get_timestamp_from_date(chat['creation_time']), self.get_timestamp_from_date(chat['last_modified_time']), 0, "",
-                          "D", "", rec_ids, "", "", 0, 0, 0, creator_id[0]['id'], json.dumps(False), 0, self.get_timestamp(), chat['chat_id']]
+                          "D", "", rec_ids, "", "", self.get_timestamp(), 0, 0, creator_id[0]['id'], json.dumps(False), 0, self.get_timestamp(), chat['chat_id']]
                 MatterSqlClient.sql_post(
                     table_name='channels', attrs=keys, values=values)
         print(Fore.GREEN + "Chats Inserted")
@@ -115,7 +115,7 @@ class MattermostClient:
                 if zoho_cliq_chat['chat_type'] == 'dm' and zoho_cliq_chat['chat_id'] == zoho_cliq_message['chat_id']:
                     if zoho_cliq_message['type'] == 'text':
                         user_id = MatterSqlClient.sql_get(
-                            'users', 'id', f"username='{json.loads(zoho_cliq_message['sender'])['name']}'")
+                            'users', 'id', f"username='{remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])}'")
                         values = [self.generate_id(
                             26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], channel_id[0]['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
                         MatterSqlClient.sql_post(

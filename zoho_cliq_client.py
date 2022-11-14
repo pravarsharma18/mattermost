@@ -9,12 +9,12 @@ import time
 import pandas as pd
 import csv
 
-from utils import create_new_column
+from utils import create_new_column, remove_punctions
 
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.f0454f9a1b50704355431115deb692e5.590ad04690ea23a2f96daafc500ba92f"
+    access_token = "1000.484ef6b6012e622f139edbf7bbae66dc.d5af0a29c8daff768f959935a9d77b8b"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -37,11 +37,17 @@ class ZohoClient:
             while data['has_more']:
                 s, data = self.get_chat_api(
                     f'api/v2/users?next_token={data["next_token"]}')
-                data = json.load(data)
+                data = json.loads(data)
                 users.extend(data['data'])
 
                 if not data['has_more']:
                     break
+        # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+        df = pd.DataFrame(users)
+        df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+        df['display_name'] = df['display_name'].apply(
+            lambda x: remove_punctions(x))
+        users = df.to_dict('records')
         for user in users:
             values = user.values()
             li = [i for i in values]
@@ -86,6 +92,11 @@ class ZohoClient:
         s, data = self.get_chat_api('api/v2/chats')
 
         chats = json.loads(data)['chats']
+        # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+        df = pd.DataFrame(chats)
+        df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+        chats = df.to_dict('records')
+
         for chat in chats:
             keys = list(chat.keys())
             v = [i for i in chat.values()]
