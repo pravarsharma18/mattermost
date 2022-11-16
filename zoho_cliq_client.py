@@ -8,13 +8,14 @@ from typing import Tuple
 import time
 import pandas as pd
 import csv
+import numpy as np
 
 from utils import create_new_column, remove_punctions
 
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.100ce5e9d60472fa47afd76d7883486c.86819cbe41dabac376b8de4f508d35bb"
+    access_token = "1000.75bd7b84db4ef72184a59e636e93da6b.ee985e32805330bf0d30861ff6f7e720"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -103,6 +104,9 @@ class ZohoClient:
         # to remove spaces and add '.' as mattermost username doesnot support spaces for username
         df = pd.DataFrame(chats)
         df['title'] = df['title'].apply(lambda x: remove_punctions(x))
+        df['last_modified_time'] = df['last_modified_time'].astype('object')
+        df['last_modified_time'] = df['last_modified_time'].fillna(0)
+        df['last_modified_time'] = df['last_modified_time'].astype('int')
         chats = df.to_dict('records')
         for chat in chats:
             s, chat_members = self.get_chat_api(

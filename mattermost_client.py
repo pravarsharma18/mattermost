@@ -59,7 +59,7 @@ class MattermostClient:
                 "useAutomaticTimezone": "true"
             }
             values = [self.generate_id(26), self.get_timestamp(
-            ), self.get_timestamp(), 0, user['name'], "Demo@1234", "", user['email'], "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
+            ), self.get_timestamp(), 0, user['name'], "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", user['email'], "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
 
             li.append(dict(zip(keys.split(','), values)))
         return li
