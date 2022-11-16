@@ -236,7 +236,6 @@ class MattermostClient:
                 assignees = list(owner['email']
                                  for owner in json.loads(task['details'])['owners'])
                 assignee_ids = get_owners_id_by_email(assignees)
-                print(assignee_ids)
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"username like '%{task['created_person']}%'")
                 if board['title'] == task['project_name']:

@@ -14,7 +14,7 @@ from utils import create_new_column, remove_punctions
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.484ef6b6012e622f139edbf7bbae66dc.d5af0a29c8daff768f959935a9d77b8b"
+    access_token = "1000.100ce5e9d60472fa47afd76d7883486c.86819cbe41dabac376b8de4f508d35bb"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -87,21 +87,30 @@ class ZohoClient:
 
     def bulk_conversation(self):
         keys = ZohoSqlClient.get_columns("cliq_chats")
+        s, data = self.get_chat_api(
+            'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time', header={"Content-Type": 'text/csv'})
         # s, data = self.get_chat_api(
-        #     'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time', header={"Content-Type": 'text/csv'})
-        s, data = self.get_chat_api('api/v2/chats')
+        #     'api/v2/chats')
 
-        chats = json.loads(data)['chats']
+        with open('chats.csv', 'w') as f:
+            f.writelines(data)
+
+        # with open('channels.csv', 'r') as f:
+        #     reader = csv.reader(f)
+        #     next(reader)  # Skip the header row.
+        #     for row in reader:
+        chats = pd.read_csv('chats.csv')
         # to remove spaces and add '.' as mattermost username doesnot support spaces for username
         df = pd.DataFrame(chats)
-        df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+        df['title'] = df['title'].apply(lambda x: remove_punctions(x))
         chats = df.to_dict('records')
-
         for chat in chats:
-            keys = list(chat.keys())
+            s, chat_members = self.get_chat_api(
+                f'maintenanceapi/v2/chats/{chat["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
             v = [i for i in chat.values()]
             values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                 v)]
+            values.append(json.dumps(chat_members.split()[1:]))
             ZohoSqlClient.sql_post(
                 table_name="cliq_chats", attrs=keys, values=values)
         print(Fore.GREEN + "Conversations Inserted")
@@ -111,23 +120,31 @@ class ZohoClient:
         chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
         for chat_id in chat_ids:
             s, data = self.get_chat_api(
-                f'api/v2/chats/{chat_id["chat_id"]}/messages')  # maintenance
+                f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages')  # maintenance
             messages = json.loads(data)
-            # pprint(messages['data'])
-            # print()
-            for data in messages['data']:
-                keys = list(data.keys())
-                columns = ZohoSqlClient.get_columns("cliq_messages")
-                # Alter table columns as per field from api.
-                create_new_column(keys, columns, 'cliq_messages')
-                values = list(data.values())
-                data_values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                    values)]
-                data_values.append(chat_id["chat_id"])
-                keys.append('chat_id')
-                ZohoSqlClient.sql_post(
-                    table_name='cliq_messages', attrs=keys, values=data_values)
+            try:  # some data has no chats, to eliminate that error
+                for data in messages:
+                    keys = list(data.keys())
+                    columns = ZohoSqlClient.get_columns("cliq_messages")
+                    # Alter table columns as per field from api.
+                    create_new_column(keys, columns, 'cliq_messages')
+                    values = list(data.values())
+                    data_values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                        values)]
+                    data_values.append(chat_id["chat_id"])
+                    keys.append('chat_id')
+                    ZohoSqlClient.sql_post(
+                        table_name='cliq_messages', attrs=keys, values=data_values)
+            except:
+                pass
         print(Fore.GREEN + "Messages Inserted")
+
+    def channel_members(self):
+        chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
+        for chat_id in chat_ids:
+            s, data = self.get_chat_api(
+                f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
+            print(data.split()[1:])
 
     def get_files(self):
         s, data = self.get_chat_api(
@@ -138,7 +155,6 @@ class ZohoClient:
         """
         portals and projects must be saved before others
         """
-        time.sleep(1)
         self.get_all_users()
         time.sleep(1)
         self.bulk_channels()

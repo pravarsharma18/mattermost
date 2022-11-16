@@ -40,6 +40,73 @@ class MattermostClient:
                 table_name='channels', attrs=keys, values=values)
         print(Fore.GREEN + "Channel Inserted")
 
+    def insert_chats(self):
+        channel_keys = ['id', 'createat', 'updateat', 'deleteat', 'teamid', 'type', 'displayname', 'name',
+                        'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'shared', 'totalmsgcountroot', 'lastrootpostat', 'chat_id']
+        prefrence_keys = MatterSqlClient.get_columns('preferences')
+        # team = MatterSqlClient.sql_get("teams", "id")
+        chats = ZohoSqlClient.sql_get("cliq_chats")
+        channel_members = MatterSqlClient.get_columns('channelmembers')
+        # try:
+        #     # To get the channel id in the next method
+        #     # Deleted in the next method.
+        #     MatterSqlClient.add_column(
+        #         'channels', 'chat_id', 'varchar(255)')
+        # except:
+        #     pass
+        for chat in chats:
+            # if chat['chat_type'] == "dm":
+            recipient_summaries = json.loads(chat['recipients_summary'])
+            rec_ids = []
+            for recipient_summary in recipient_summaries:
+                user_id = MatterSqlClient.sql_get(
+                    'users', 'id, username', f"email='{recipient_summary}'")
+                rec_ids.append(user_id[0]['id'])
+            if len(rec_ids) == 2:
+                rec_ids_str = "__".join(rec_ids)
+
+            user_email = ZohoSqlClient.sql_get(
+                'cliq_users', 'email_id', f"id like '%{chat['creator_id']}%'")
+            print(user_email)
+            # creator_id = MatterSqlClient.sql_get(
+            #     "users", "id", f"email='{user_email[0]['email_id']}'")
+            # channel_values = [self.generate_id(26), self.get_timestamp_from_date(chat['creation_time']), self.get_timestamp_from_date(chat['last_modified_time']), 0, "",
+            #                   "D", "", rec_ids_str, "", "", self.get_timestamp_from_date(chat['last_modified_time']), 0, 0, creator_id[0]['id'], json.dumps(False), 0, self.get_timestamp_from_date(chat['last_modified_time']), chat['chat_id']]
+            # channel_id = MatterSqlClient.sql_post(
+            #     table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
+
+            # notify_props = {
+            #     "push": "default",
+            #     "email": "default",
+            #     "desktop": "default",
+            #     "mark_unread": "all",
+            #     "ignore_channel_mentions": "default"
+            # }
+
+            # member_1 = [channel_id, rec_ids[0], "",
+            #             0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+            # MatterSqlClient.sql_post(
+            #     table_name='channelmembers', attrs=channel_members, values=member_1)
+
+            # member_2 = [channel_id, rec_ids[1], "",
+            #             0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+            # MatterSqlClient.sql_post(
+            #     table_name='channelmembers', attrs=channel_members, values=member_2)
+
+            # # insert in prefrence Table
+            # prefrence_values1 = [rec_ids[0],
+            #                      "direct_channel_show", rec_ids[1], "true"]
+            # prefrence_values2 = [rec_ids[0],
+            #                      "channel_open_time", channel_id, self.get_timestamp()]
+            # # prefrence_values2 = [rec_ids[1],
+            # #                      "direct_channel_show", rec_ids[0], "true"]
+            # MatterSqlClient.sql_post(
+            #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values1)
+            # MatterSqlClient.sql_post(
+            #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values2)
+
+        print(Fore.GREEN + "Chats Inserted")
+
     def insert_channel_members(self):
         # users = MatterSqlClient.sql_get(
         #     'users', 'id,roles,username', "username not in ('channelexport','system-bot','boards','playbooks','appsbot','feedbackbot')")
@@ -71,39 +138,6 @@ class MattermostClient:
                     table_name="channelmembers", attrs=keys, values=values)
         print(Fore.GREEN + "Channle Members Inserted")
 
-    def insert_chats(self):
-        keys = ['id', 'createat', 'updateat', 'deleteat', 'teamid', 'type', 'displayname', 'name',
-                'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'shared', 'totalmsgcountroot', 'lastrootpostat', 'chat_id']
-        team = MatterSqlClient.sql_get("teams", "id")
-        chats = ZohoSqlClient.sql_get("cliq_chats")
-        try:
-            # To get the channel id in the next method
-            # Deleted in the next method.
-            MatterSqlClient.add_column(
-                'channels', 'chat_id', 'varchar(255)')
-        except:
-            pass
-        for chat in chats:
-            if chat['chat_type'] == "dm":
-                recipient_summaries = json.loads(chat['recipients_summary'])
-                rec_ids = []
-                for recipient_summary in recipient_summaries:
-                    user_id = MatterSqlClient.sql_get(
-                        'users', 'id, username', f"username like '%{remove_punctions(recipient_summary['name'])}%'")
-                    rec_ids.append(user_id[0]['id'])
-                rec_ids = "__".join(rec_ids)
-
-                user_email = ZohoSqlClient.sql_get(
-                    'cliq_users', 'email_id', f"id='{chat['creator_id']}'")
-
-                creator_id = MatterSqlClient.sql_get(
-                    "users", "id", f"email='{user_email[0]['email_id']}'")
-                values = [self.generate_id(26), self.get_timestamp_from_date(chat['creation_time']), self.get_timestamp_from_date(chat['last_modified_time']), 0, "",
-                          "D", "", rec_ids, "", "", self.get_timestamp(), 0, 0, creator_id[0]['id'], json.dumps(False), 0, self.get_timestamp(), chat['chat_id']]
-                MatterSqlClient.sql_post(
-                    table_name='channels', attrs=keys, values=values)
-        print(Fore.GREEN + "Chats Inserted")
-
     def insert_posts(self):
         keys = MatterSqlClient.get_columns("posts")
         zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages')
@@ -112,7 +146,7 @@ class MattermostClient:
             channel_id = MatterSqlClient.sql_get(
                 'channels', 'id', f"chat_id='{zoho_cliq_chat['chat_id']}'")
             for zoho_cliq_message in zoho_cliq_messages:
-                if zoho_cliq_chat['chat_type'] == 'dm' and zoho_cliq_chat['chat_id'] == zoho_cliq_message['chat_id']:
+                if zoho_cliq_chat['chat_id'] == zoho_cliq_message['chat_id']:
                     if zoho_cliq_message['type'] == 'text':
                         user_id = MatterSqlClient.sql_get(
                             'users', 'id', f"username='{remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])}'")
@@ -125,10 +159,10 @@ class MattermostClient:
 
     def main(self):
         self.insert_channels()
-        self.insert_channel_members()
         self.insert_chats()
+        self.insert_channel_members()
         self.insert_posts()
 
 
 if __name__ == "__main__":
-    c = MattermostClient().main()
+    c = MattermostClient().insert_chats()

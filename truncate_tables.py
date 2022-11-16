@@ -42,6 +42,10 @@ class DeleteMattermostTables:
             "focalboard_boards", "type='P'")
         print(Fore.RED + "**Focal Boards Deleted**")
 
+    def truncate_focalboard_boards(self) -> None:
+        MatterSqlClient.sql_delete("posts")
+        print(Fore.RED + "**Posts Deleted**")
+
     def main(self) -> None:
         self.truncate_users()
         self.truncate_teams()
