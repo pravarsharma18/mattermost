@@ -6,11 +6,14 @@ import time
 import random
 import sys
 import string
+import pathlib
+import requests
+from zoho_client import ZohoClient
 from sql import ZohoSqlClient, MatterSqlClient
 from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
-import pandas as pd
+from PIL import Image
 from utils import remove_punctions
 
 
@@ -153,7 +156,8 @@ class MattermostClient:
         zoho_cliq_chats = ZohoSqlClient.sql_get('cliq_chats')
         for zoho_cliq_chat in zoho_cliq_chats:
             channel_id = MatterSqlClient.sql_get(
-                'channels', 'id', f"chat_id='{zoho_cliq_chat['chat_id']}'")
+                'channels', 'name, id', f"chat_id='{zoho_cliq_chat['chat_id']}'")
+            # print(channel_id)
             for zoho_cliq_message in zoho_cliq_messages:
                 if zoho_cliq_chat['chat_id'] == zoho_cliq_message['chat_id']:
                     if zoho_cliq_message['type'] == 'text':
@@ -162,20 +166,56 @@ class MattermostClient:
                         try:  # bot users are not in mattermost users table
                             values = [self.generate_id(
                                 26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], channel_id[0]['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
-                            MatterSqlClient.sql_post(
-                                table_name='posts', attrs=keys, values=values)
+                            # MatterSqlClient.sql_post(
+                            #     table_name='posts', attrs=keys, values=values)
                         except:
                             pass
-        MatterSqlClient.delete_column('channels', 'chat_id')
+                    elif zoho_cliq_message['type'] == 'file':
+                        content = json.loads(zoho_cliq_message['content'])
+                        file = content['file']
+                        if file['type'] == ('image/jpeg' or 'image/png'):
+                            timestamp = int(zoho_cliq_message['time'])
+                            date_folder = datetime.strftime(
+                                datetime.fromtimestamp(timestamp / 1000), '%Y%m%d')
+                            # try:
+                            #     id_channel = channel_id[0]['id']
+                            #     user_id_1 = channel_id[0]['name'].split('__')[
+                            #         0]
+                            #     user_id_2 = channel_id[0]['name'].split('__')[
+                            #         1]
+                            #     path = f"{date_folder}/teams/noteam/channels/{id_channel}/users/{user_id_1}/{user_id_2}/"
+                            #     pathlib.Path(path).mkdir(
+                            #         parents=True, exist_ok=True)
+
+                            r = requests.get(
+                                f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
+                                    "Authorization": f"Zoho-oauthtoken {ZohoClient().access_token}",
+                                    "Content-Type": 'application/json'
+                                }).content
+                            with open(f"{file['name']}", 'wb') as handler:
+                                handler.write(r)
+                            im = Image.open(f"{file['name']}")
+
+                            im.save('_preview.'.join(file['name'].split('.')),
+                                    optimize=True)
+                            newsize = (120, 120)
+                            im1 = im.resize(newsize)
+                            im1.save('_thumb.'.join(
+                                file['name'].split('.')), optimize=True)
+                            # except:
+                            #     pass
+                        elif file['type'] == 'image/jpeg':
+                            pass
+        # MatterSqlClient.delete_column('channels', 'chat_id')
         print("Post Added.")
 
     def main(self):
         self.insert_channels()
         self.insert_chats()
-        self.insert_channel_members()
-        self.insert_posts()
+        # self.insert_channel_members()
+        # self.insert_posts()
 
 
 if __name__ == "__main__":
     print(Fore.YELLOW + "\n<========Saving Mattermost channels Data in DB=========>\n")
-    c = MattermostClient().main()
+    c = MattermostClient().insert_posts()

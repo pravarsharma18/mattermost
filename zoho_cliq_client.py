@@ -8,14 +8,15 @@ from typing import Tuple
 import time
 import pandas as pd
 import csv
-import numpy as np
-
+from PIL import Image
 from utils import create_new_column, remove_punctions
+from datetime import datetime
+import pathlib
 
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.75bd7b84db4ef72184a59e636e93da6b.ee985e32805330bf0d30861ff6f7e720"
+    access_token = "1000.a9e0962e74dd0a195c3270b331fe92d3.e9332397f72765ab362a3b34224126a3"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -151,9 +152,28 @@ class ZohoClient:
             print(data.split()[1:])
 
     def get_files(self):
-        s, data = self.get_chat_api(
-            f'api/v2/files/ad4ea84b256b25fcb1777ef77fb61e620567162441817a5937c8f4837954ed346a01e229abdc62ead60fc12c966d2b762de2f4292e96abce103fde1d94a9eeff')
-        print(data)
+        timestamp = 1667826637315
+        date_folder = datetime.strftime(
+            datetime.fromtimestamp(timestamp / 1000), '%Y%m%d')
+        channel_id = "ccll"
+        user_id_1 = "uu11"
+        user_id_2 = "uu22"
+        path = f"/opt/mattermost/data/{date_folder}/teams/noteam/channels/{channel_id}/users/{user_id_1}/{user_id_2}"
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+
+        r = requests.get(
+            "https://cliq.zoho.in/api/v2/files/{}", headers={
+                "Authorization": f"Zoho-oauthtoken {self.access_token}",
+                "Content-Type": 'application/json'
+            }).content
+
+        with open(f'{path}/image_name.jpeg', 'wb') as handler:
+            handler.write(r)
+        im = Image.open(f'{path}/image_name.jpeg')
+        im.save(f'{path}/image_name_preview.jpg', optimize=True)
+        newsize = (120, 120)
+        im1 = im.resize(newsize)
+        im1.save(f'{path}/image_name_thumb.jpg', optimize=True)
 
     def main(self):
         """
