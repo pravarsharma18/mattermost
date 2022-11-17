@@ -100,7 +100,7 @@ class MattermostClient:
 
         MatterSqlClient.sql_post(
             table_name="channels", attrs=keys, values=values)
-        print(Fore.GREEN + "## Updated team id in channels ##")
+        print(Fore.GREEN + "## Channel Created ##")
 
     def insert_channel_members_data(self) -> None:
         channels = MatterSqlClient.sql_get(
