@@ -47,7 +47,7 @@ class MattermostClient:
             creator_id = MatterSqlClient.sql_get(
                 "users", "id", f"email='{channel['creator_id']}'")
             values = [self.generate_id(26), channel['creation_time'], channel['creation_time'], 0, team[0]['id'],
-                      "O", channel['name'], channel['name'].split('#')[1], "", "", channel['creation_time'], channel['total_message_count'], 0, creator_id[0]['id'], 0, self.get_timestamp()]
+                      "O", channel['name'], channel['name'].split('#')[1], "", "", channel['creation_time'], channel['total_message_count'], 0, creator_id[0]['id'], 0, 0]
             MatterSqlClient.sql_post(
                 table_name='channels', attrs=keys, values=values)
         print(Fore.GREEN + "Channel Inserted")
@@ -73,17 +73,22 @@ class MattermostClient:
             for recipient_summary in recipient_summaries:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"email='{recipient_summary}'")
-
                 rec_ids.append(user_id[0]['id'])
             if len(rec_ids) == 2:
-                rec_ids = rec_ids[::-1]
+                rec_ids = rec_ids
+                rec_ids_reverse = rec_ids[::-1]
                 rec_ids_str = "__".join(rec_ids)
+                rec_ids_str_reverse = "__".join(rec_ids_reverse)
                 creator_id = MatterSqlClient.sql_get(
                     "users", "id", f"email='{chat['creator_id']}'")
                 channel_values = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
                                   "D", "", rec_ids_str, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
+                channel_values_reverse = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
+                                  "D", "", rec_ids_str_reverse, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
                 channel_id = MatterSqlClient.sql_post(
                     table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
+                channel_id_reverse = MatterSqlClient.sql_post(
+                    table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
 
                 notify_props = {
                     "push": "default",
@@ -97,31 +102,54 @@ class MattermostClient:
                             0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
                 MatterSqlClient.sql_post(
                     table_name='channelmembers', attrs=channel_members, values=member_1)
+                
+                member_1_reverse = [channel_id_reverse, rec_ids_reverse[0], "",
+                            0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+                MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
 
                 member_2 = [channel_id, rec_ids[1], "",
                             0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
                 MatterSqlClient.sql_post(
                     table_name='channelmembers', attrs=channel_members, values=member_2)
 
+                member_2_reverse = [channel_id_reverse, rec_ids_reverse[1], "",
+                            0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+                MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_2_reverse)
+
                 # insert in prefrence Table
                 prefrence_values_channel_show1 = [rec_ids[0],
                                                   "direct_channel_show", rec_ids[1], "true"]
+                MatterSqlClient.sql_post(
+                    table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
+
                 prefrence_values_open_time1 = [rec_ids[0],
                                                "channel_open_time", channel_id, self.get_timestamp()]
                 MatterSqlClient.sql_post(
-                    table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
-                MatterSqlClient.sql_post(
                     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1)
+                
+                prefrence_values_open_time1_reverse = [rec_ids_reverse[0],
+                                               "channel_open_time", channel_id_reverse, self.get_timestamp()]
+                MatterSqlClient.sql_post(
+                    table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1_reverse)
 
                 prefrence_values_channel_show2 = [rec_ids[1],
                                                   "direct_channel_show", rec_ids[0], "true"]
+                MatterSqlClient.sql_post(
+                    table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
+
                 prefrence_values_open_time2 = [rec_ids[1],
                                                "channel_open_time", channel_id, self.get_timestamp()]
 
                 MatterSqlClient.sql_post(
-                    table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
-                MatterSqlClient.sql_post(
                     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2)
+                
+                prefrence_values_open_time2_reverse = [rec_ids_reverse[1],
+                                               "channel_open_time", channel_id_reverse, self.get_timestamp()]
+
+                MatterSqlClient.sql_post(
+                    table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2_reverse)
 
         print(Fore.GREEN + "Chats Inserted")
 

@@ -16,7 +16,7 @@ import pathlib
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.01d85fb85d1705b9fcc6538fa44f55d5.26eefbd8bebf5bb55c8f6af50eb484f3"
+    access_token = "1000.3731445c26273fd09b85913810056f75.13f04ef96ce9d768ca807233306dc6c4"
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"

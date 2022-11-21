@@ -58,7 +58,8 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
 
 
 def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type):
-    try:
+        print(type)
+    # try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
         datetime.fromtimestamp(timestamp / 1000), '%Y%m%d')
@@ -72,17 +73,18 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
         posts_id = generate_id(26)
         path = f"{date_folder}/teams/noteam/channels/{id_channel}/users/{sender_id[0]['id']}/{xml_fileinfo_id}/"
         file_path = f"{mattermost_base_path}{path}" 
+        print(file['name'])
         if type == "application/x-ooxml":
-            extension = file['id'].split('.')[-1]
+            extension = file['name'].split('.')[-1]
             minetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         elif type == "application/pdf":
-            extension = file['id'].split('.')[-1]
+            extension = file['name'].split('.')[-1]
             minetype = type
         elif type == "application/zip":
-            extension = file['id'].split('.')[-1]
+            extension = file['name'].split('.')[-1]
             minetype = type
         elif type == "text/plain":
-            extension = file['id'].split('.')[-1]
+            extension = file['name'].split('.')[-1]
             minetype = type
 
         type_xml_fileinfo_values = [
@@ -90,22 +92,23 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
         xml_posts_values = [posts_id, zoho_cliq_message['time'], zoho_cliq_message['time'], 0, sender_id[0]['id'], id_channel, "", "", "", "", json.dumps(
             {"disable_group_highlight": True}), "", json.dumps([]), json.dumps([xml_fileinfo_id]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
 
-        # pathlib.Path(file_path).mkdir(
-        #     parents=True, exist_ok=True)
-        
-        # r = requests.get(
-        #     f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-        #         "Authorization": f"Zoho-oauthtoken {ZohoClient().access_token}",
-        #         "Content-Type": 'application/json'
-        #     }).content
-        # with open(f"{file_path}{file['name']}", 'wb') as f:
-        #     f.write(r)
-        
-        # MatterSqlClient.sql_post(
-        #     table_name="posts", attrs=posts_keys, values=xml_posts_values)
 
-        # MatterSqlClient.sql_post(
-            # table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
-    except:
-        pass
+        pathlib.Path(file_path).mkdir(
+            parents=True, exist_ok=True)
+        
+        r = requests.get(
+            f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
+                "Authorization": f"Zoho-oauthtoken {ZohoClient().access_token}",
+                "Content-Type": 'application/json'
+            }).content
+        with open(f"{file_path}{file['name']}", 'wb') as f:
+            f.write(r)
+        
+        MatterSqlClient.sql_post(
+            table_name="posts", attrs=posts_keys, values=xml_posts_values)
+
+        MatterSqlClient.sql_post(
+            table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
+    # except:
+    #     pass
     
