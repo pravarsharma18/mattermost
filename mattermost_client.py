@@ -196,12 +196,12 @@ class MattermostClient:
     def insert_focalblocks_view_data(self) -> None:
         keys = MatterSqlClient.get_columns("focalboard_blocks")
         boards = MatterSqlClient.sql_get(
-            'focalboard_boards', 'id,title,created_by,card_properties', "created_by!='system'")
+            'focalboard_boards', 'id,title,card_properties', "created_by!='system'")
         tasks = ZohoSqlClient.sql_get(
             'tasks', 'project_name,status,name,created_person')
         for board in boards:
             person_id = card_propety_id(
-                board['card_properties'], "Assignee")
+            board['card_properties'], "Assignee")
             for task in tasks:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"username like '%{task['created_person']}%'")
@@ -210,7 +210,7 @@ class MattermostClient:
                         27), datetime.now(), self.generate_id(27), 1, "view", f"By Status", json.dumps({"visiblePropertyIds": [person_id]}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
                     MatterSqlClient.sql_post(
                         table_name="focalboard_blocks", attrs=keys, values=values)
-                break
+                    break
         print(Fore.GREEN + "## Inserted Focal Blocks Views ##")
 
     def insert_focalblocks_card_data(self) -> None:
