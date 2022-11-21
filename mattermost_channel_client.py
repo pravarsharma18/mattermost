@@ -1,22 +1,13 @@
 from pprint import pprint
-import psycopg2
 from datetime import datetime
 import json
 import time
 import random
-import sys
 import string
-import pathlib
-import requests
 from data_insert import image_data, xlsx_data
-from zoho_client import ZohoClient
 from sql import ZohoSqlClient, MatterSqlClient
-from models import CardProperties
-from bs4 import BeautifulSoup
 from colorama import Fore
-from PIL import Image
 from utils import remove_punctions
-import os
 from decouple import config
 
 
@@ -40,14 +31,22 @@ class MattermostClient:
 
     def insert_channels(self):
         keys = ['id', 'createat', 'updateat', 'deleteat', 'teamid', 'type', 'displayname', 'name',
-                'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'totalmsgcountroot', 'lastrootpostat']
+                'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'totalmsgcountroot', 'lastrootpostat', 'chat_id']
         team = MatterSqlClient.sql_get("teams", "id")
         channels = ZohoSqlClient.sql_get("cliq_channels")
+        try:
+            # To get the channel id in the next method
+            # Deleted in the next method.
+            MatterSqlClient.add_column(
+                'channels', 'chat_id', 'varchar(255)')
+        except:
+            pass
         for channel in channels:
+            chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel['name'][1:]}%'" )
             creator_id = MatterSqlClient.sql_get(
                 "users", "id", f"email='{channel['creator_id']}'")
             values = [self.generate_id(26), channel['creation_time'], channel['creation_time'], 0, team[0]['id'],
-                      "O", channel['name'], channel['name'].split('#')[1], "", "", channel['creation_time'], channel['total_message_count'], 0, creator_id[0]['id'], 0, 0]
+                      "O", channel['name'], channel['name'].split('#')[1], "", "", channel['creation_time'], channel['total_message_count'], 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
             MatterSqlClient.sql_post(
                 table_name='channels', attrs=keys, values=values)
         print(Fore.GREEN + "Channel Inserted")
@@ -59,13 +58,7 @@ class MattermostClient:
         # team = MatterSqlClient.sql_get("teams", "id")
         chats = ZohoSqlClient.sql_get("cliq_chats")
         channel_members = MatterSqlClient.get_columns('channelmembers')
-        try:
-            # To get the channel id in the next method
-            # Deleted in the next method.
-            MatterSqlClient.add_column(
-                'channels', 'chat_id', 'varchar(255)')
-        except:
-            pass
+        
         for chat in chats:
             # if chat['chat_type'] == "dm":
             recipient_summaries = json.loads(chat['recipients_summary'])
@@ -224,12 +217,20 @@ class MattermostClient:
         print("img", img)
         print("xl", xl)
         print("Post Added.")
+    
+    def delete_extrachannel(self):
+        query = '''
+            delete from channels where type='D' and id not in (select c.id from channels as c join posts as p on p.channelid = c.id group by 1)
+        '''
+        MatterSqlClient.raw_query(query)
+        print("Deleted extra created channels")
 
     def main(self):
         self.insert_channels()
         self.insert_chats()
         self.insert_channel_members()
         self.insert_posts()
+        self.delete_extrachannel()
 
 
 if __name__ == "__main__":

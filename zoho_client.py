@@ -6,7 +6,7 @@ from colorama import Fore
 from sql import ZohoSqlClient
 import sys
 from typing import Tuple
-
+from decouple import config
 from utils import create_new_column, remove_punctions
 
 
@@ -14,7 +14,7 @@ class ZohoClient:
     zoho_project_base_url = "https://projectsapi.zoho.in/"
     zoho_chat_base_url = "https://cliq.zoho.in/api/v2/"
 
-    access_token = "1000.3731445c26273fd09b85913810056f75.13f04ef96ce9d768ca807233306dc6c4"
+    access_token = config('ZOHO_API_KEY')
     # restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/
 
     def get_project_api(self, path) -> Tuple[int, dict]:

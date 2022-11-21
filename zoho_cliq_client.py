@@ -3,20 +3,17 @@ from pprint import pprint
 import json
 from colorama import Fore
 from sql import ZohoSqlClient
-import sys
 from typing import Tuple
 import time
 import pandas as pd
 import csv
-from PIL import Image
 from utils import create_new_column, remove_punctions
-from datetime import datetime
-import pathlib
+from decouple import config
 
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = "1000.3731445c26273fd09b85913810056f75.13f04ef96ce9d768ca807233306dc6c4"
+    access_token = config('ZOHO_API_KEY')
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"

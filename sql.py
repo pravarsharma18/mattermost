@@ -215,6 +215,13 @@ class MatterSqlClient:
         cls.mattermydb.commit()
 
     @classmethod
+    def raw_query(cls, query):
+        mycursor = cls.get_cursor()
+        
+        mycursor.execute(query)
+        cls.mattermydb.commit()
+
+    @classmethod
     def get_columns(cls, table_name) -> list:
         mycursor = cls.get_cursor()
         query = f"select column_name from information_schema.columns where table_name = '{table_name}' order by ordinal_position"

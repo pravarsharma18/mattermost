@@ -1,5 +1,4 @@
 from pprint import pprint
-import psycopg2
 from datetime import datetime
 import json
 import time
@@ -10,8 +9,7 @@ from sql import ZohoSqlClient, MatterSqlClient
 from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
-import pandas as pd
-from utils import card_propeties_values_id, card_propety_id, get_owners_id, get_owners_id_by_email, remove_punctions
+from utils import card_propeties_values_id, card_propety_id, get_owners_id_by_email
 
 
 class MattermostClient:
@@ -294,10 +292,5 @@ class MattermostClient:
 if __name__ == "__main__":
     print(Fore.YELLOW + "\n<========Saving Mattermost Data in DB=========>\n")
     client = MattermostClient()
-    # client.save_focalboard_boards()
-    # client.save_focalboard_board_members()
-    # client.create_team()
     client.main()
-    # client.insert_channel_members_data()
-    # client.insert_focalboard_board_members_data()
-    # client.insert_focalblocks_card_data()
+
