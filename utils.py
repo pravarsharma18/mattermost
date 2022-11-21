@@ -2,7 +2,11 @@
 from sql import MatterSqlClient, ZohoSqlClient
 import json
 import string
+import random
 
+
+def generate_id(size_of_id) -> str:
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=size_of_id))
 
 def card_propeties_values_id(properties, name, value) -> list:
     for property in properties:

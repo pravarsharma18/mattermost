@@ -42,9 +42,13 @@ class DeleteMattermostTables:
             "focalboard_boards", "type='P'")
         print(Fore.RED + "**Focal Boards Deleted**")
 
-    def truncate_focalboard_boards(self) -> None:
+    def truncate_posts(self) -> None:
         MatterSqlClient.sql_delete("posts")
         print(Fore.RED + "**Posts Deleted**")
+    
+    def truncate_fileinfo(self) -> None:
+        MatterSqlClient.sql_delete("fileinfo")
+        print(Fore.RED + "**Fileinfo Deleted**")
 
     def main(self) -> None:
         self.truncate_users()
@@ -55,6 +59,8 @@ class DeleteMattermostTables:
         self.truncate_focalboard_board_members()
         self.truncate_focalboard_blocks()
         self.truncate_focalboard_boards()
+        self.truncate_posts()
+        self.truncate_fileinfo()
 
 
 class DeleteZohoTables:
