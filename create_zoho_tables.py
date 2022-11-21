@@ -126,13 +126,8 @@ class CreateZohoTables:
         mycursor = ZohoSqlClient.zohomydb.cursor()
         query = '''
             CREATE TABLE if not exists cliq_channels (
-                pinned boolean, level varchar(255), chat_id varchar(255),
-                joined boolean, creator_name varchar(255), unique_name varchar(255), total_message_count varchar(255),
-                organization_id varchar(255), admin_permission text, muted_interval varchar(255), channel_id varchar(255),
-                creator_id varchar(255), invite_only boolean, moderator_permission text, unread_message_count int,
-                last_message_info text, last_modified_time varchar(255), status varchar(255), description text,
-                member_permission text, creation_time varchar(255), participant_count int, current_user_role varchar(255),
-                teams text, name varchar(255)
+                name varchar(255),channel_id varchar(255), total_message_count int, participant_count int,
+                creation_time varchar(255), description text, creator_id varchar(255)
             );
         '''
         mycursor.execute(query)
