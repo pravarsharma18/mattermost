@@ -2,11 +2,11 @@
 
 ### Delete data from Mattermost and Zoho DB.
 
-python3 truncate_tables.py
+# python3 truncate_tables.py
 
 ### Create Zoho Tables in local DB
 
-# python3 create_zoho_tables.py
+python3 create_zoho_tables.py
 
 ### Get Data from zoho API and Insert in Local DB
 
