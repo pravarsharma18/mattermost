@@ -3,7 +3,7 @@ from decouple import config
 
 class ZohoSqlClient:
     zohomydb = psycopg2.connect(host=config('ZOHO_HOST'), database=config('ZOHO_DATABASE'),
-                                user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'))
+                                user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'), port=config('ZOHO_PORT'))
 
     @classmethod
     def get_cursor(cls):
@@ -21,7 +21,7 @@ class ZohoSqlClient:
 
             # Reconnect
             cls.zohomydb = psycopg2.connect(host=config('ZOHO_HOST'), database=config('ZOHO_DATABASE'),
-                                user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'))
+                                user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'), port=config('ZOHO_PORT'))
             cursor = cls.zohomydb.cursor()
         return cursor
 
@@ -103,7 +103,7 @@ class ZohoSqlClient:
 
 class MatterSqlClient:
     mattermydb = psycopg2.connect(host=config('MATTERMOST_HOST'), database=config('MATTERMOST_DATABASE'),
-                                user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'))
+                                user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'), port=config('MATTERMOST_PORT'))
 
     @classmethod
     def get_cursor(cls):
@@ -121,7 +121,7 @@ class MatterSqlClient:
 
             # Reconnect
             cls.mattermydb = psycopg2.connect(host=config('MATTERMOST_HOST'), database=config('MATTERMOST_DATABASE'),
-                                user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'))
+                                user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'), port=config('MATTERMOST_PORT'))
             cursor = cls.mattermydb.cursor()
         return cursor
 
