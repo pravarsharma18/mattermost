@@ -9,6 +9,12 @@
 
 ### Rename .env.settings to .env and replace add zoho api token and path to mattermost upto '/data' folder
 
+### Give all the permission to /data folder
+
+```
+sudo chmod -R 777 /opt/mattermost/data
+```
+
 ### Create Virtual environment, activate it.
 
 ```
@@ -33,7 +39,9 @@ cd /opt/mattermost && sudo -u mattermost ./bin/mattermost
 ./start.sh
 ```
 
-## Manual commands in case error in above command
+########################################################################################################
+
+# Manual commands in case error in above command
 
 ### Delete data from Mattermost and Zoho DB.
 

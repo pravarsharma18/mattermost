@@ -1,9 +1,9 @@
 import psycopg2
-
+from decouple import config
 
 class ZohoSqlClient:
-    zohomydb = psycopg2.connect(host='localhost', database='zoho',
-                                user='mmuser', password='trootech1234')
+    zohomydb = psycopg2.connect(host=config('ZOHO_HOST'), database=config('ZOHO_DATABASE'),
+                                user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'))
 
     @classmethod
     def get_cursor(cls):
@@ -20,8 +20,8 @@ class ZohoSqlClient:
             cursor = None
 
             # Reconnect
-            cls.zohomydb = psycopg2.connect(host='localhost', database='zoho',
-                                            user='mmuser', password='trootech1234')
+            cls.zohomydb = psycopg2.connect(host=config('ZOHO_HOST'), database=config('ZOHO_DATABASE'),
+                                user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'))
             cursor = cls.zohomydb.cursor()
         return cursor
 
@@ -102,8 +102,8 @@ class ZohoSqlClient:
 
 
 class MatterSqlClient:
-    mattermydb = psycopg2.connect(host='localhost', database='mattermost',
-                                  user='mmuser', password='trootech1234')
+    mattermydb = psycopg2.connect(host=config('MATTERMOST_HOST'), database=config('MATTERMOST_DATABASE'),
+                                user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'))
 
     @classmethod
     def get_cursor(cls):
@@ -120,8 +120,8 @@ class MatterSqlClient:
             cursor = None
 
             # Reconnect
-            cls.mattermydb = psycopg2.connect(host='localhost', database='mattermost',
-                                              user='mmuser', password='trootech1234')
+            cls.mattermydb = psycopg2.connect(host=config('MATTERMOST_HOST'), database=config('MATTERMOST_DATABASE'),
+                                user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'))
             cursor = cls.mattermydb.cursor()
         return cursor
 
