@@ -104,7 +104,7 @@ class ZohoClient:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
         for portal_id in portal_ids:
             status_code, users = self.get_project_api(
-                f"restapi/portal/{portal_id['id']}/users/")
+                f"restapi/portal/{portal_id['id']}/users/?user_type=all")
             if not status_code in range(200, 299):
                 return users
             # to remove spaces and add '.' as mattermost username doesnot support spaces for username
