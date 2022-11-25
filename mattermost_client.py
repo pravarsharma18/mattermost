@@ -64,14 +64,26 @@ class MattermostClient:
 
     def insert_user_data(self) -> None:
         users = self.create_user_data()
+        print(len(users))
         for user in users:
             values = user.values()
             project_list = [i for i in values]
             users_values = [json.loads(json.dumps(v)) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int) or isinstance(v, str)) else v for i, v in enumerate(
                 project_list)]
-
-            MatterSqlClient.sql_post(
-                table_name="users", attrs=user.keys(), values=users_values)
+            user_name = MatterSqlClient.sql_get("users", "email", f"email='{user['email']}' ")
+            print(user_name, user['email'])
+            if user_name:
+                if user_name[0].get("email") == user['email']:
+                    # print("already exists")
+                    pass
+                else:
+                    print("saving..")
+                    MatterSqlClient.sql_post(
+                    table_name="users", attrs=user.keys(), values=users_values)
+            else:
+                print("in else saving..")
+                MatterSqlClient.sql_post(
+                    table_name="users", attrs=user.keys(), values=users_values)
         print(Fore.GREEN + "## Inserted User data ##")
 
     def insert_team_data(self) -> None:

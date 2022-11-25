@@ -102,6 +102,11 @@ class ZohoClient:
 
     def save_portal_users_data(self) -> None:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
+        portal_users_id = ZohoSqlClient.sql_get("portal_users", "email")
+        try:
+            portal_users_id = [p_user["email"] for p_user in portal_users_id]
+        except:
+            portal_users_id = None
         for portal_id in portal_ids:
             status_code, users = self.get_project_api(
                 f"restapi/portal/{portal_id['id']}/users/?user_type=all")
@@ -122,13 +127,23 @@ class ZohoClient:
                 user_list = [i for i in values]
                 li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                     user_list)]
-                ZohoSqlClient.sql_post(
-                    table_name="portal_users", attrs=user.keys(), values=li)
+                if portal_users_id:
+                    if user['email'] not in portal_users_id:
+                        ZohoSqlClient.sql_post(
+                            table_name="portal_users", attrs=user.keys(), values=li)
+                else:
+                    ZohoSqlClient.sql_post(
+                            table_name="portal_users", attrs=user.keys(), values=li)
         print(Fore.GREEN + "## Portal Users saved in db ##")
 
     def save_project_users_data(self) -> None:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
         project_ids = ZohoSqlClient.sql_get("projects", "id,name")
+        project_users = ZohoSqlClient.sql_get("project_users", "email,project_name")
+        try:
+            project_users = [i['email']+"__" + i['project_name'] for i in project_users]
+        except:
+            project_users = None
         for portal_id in portal_ids:
             for project_id in project_ids:
                 status_code, users = self.get_project_api(
@@ -139,26 +154,38 @@ class ZohoClient:
                 df = pd.DataFrame(users['users'])
                 df['name'] = df['name'].apply(lambda x: remove_punctions(x))
                 users = df.to_dict('records')
+
                 for user in users:
                     keys = list(user.keys())
                     columns = ZohoSqlClient.get_columns("project_users")
 
-                    # Alter table columns as per field from api.
                     create_new_column(keys, columns, "project_users")
+
+                    # Alter table columns as per field from api.
+                    columns = ZohoSqlClient.get_columns("project_users")
                     values = user.values()
                     user_list = [i for i in values]
                     li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                         user_list)]
                     li.append(project_id['name'])
-                    ZohoSqlClient.sql_post(
-                        table_name="project_users", attrs=columns, values=li)
+                    if project_users:
+                        if (user['email'] + "__" + project_id['name']) not in project_users:
+                            ZohoSqlClient.sql_post(
+                                table_name="project_users", attrs=columns, values=li)
+                    else:
+                        ZohoSqlClient.sql_post(
+                                    table_name="project_users", attrs=columns, values=li)
         print(Fore.GREEN + "## Project Users saved in db ##")
 
     def save_tasks_data(self) -> None:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
         project_ids = ZohoSqlClient.sql_get("projects", "id,name")
         keys = ZohoSqlClient.get_columns('tasks')
-
+        tasks_id = ZohoSqlClient.sql_get("tasks", "id,project_name")
+        try:
+            tasks_id = [f"{str(task['id'])}__{task['project_name']}" for task in tasks_id]
+        except:
+            tasks_id = None
         for portal_id in portal_ids:
             for project_id in project_ids:
                 status_code, tasks = self.get_project_api(
@@ -178,8 +205,13 @@ class ZohoClient:
                         values)]
                     values.append(project_id['name'])
                     keys.append('project_name')
-                    ZohoSqlClient.sql_post(
-                        table_name="tasks", attrs=keys, values=values)
+                    if tasks_id:
+                        if (f"{str(task['id'])}__{project_id['name']}") not in tasks_id:
+                            ZohoSqlClient.sql_post(
+                                table_name="tasks", attrs=keys, values=values)
+                    else:
+                        ZohoSqlClient.sql_post(
+                                table_name="tasks", attrs=keys, values=values)
         print(Fore.GREEN + "## Tasks saved in db ##")
 
     def main(self):
