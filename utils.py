@@ -48,7 +48,7 @@ def create_new_column(old_columns, columns, table_name):
     if new_columns:  # Alter table columns as per field from api.
         for column in new_columns:
             ZohoSqlClient.update_table_column(
-                table_name, f"{column}")
+                table_name, f'"{column}"')
 
 
 def remove_punctions(value):

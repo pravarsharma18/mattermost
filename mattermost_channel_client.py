@@ -213,9 +213,9 @@ class MattermostClient:
                             xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, file['type'])
              
         MatterSqlClient.delete_column('channels', 'chat_id')
-        print("text", text)
-        print("img", img)
-        print("xl", xl)
+        # print("text", text)
+        # print("img", img)
+        # print("xl", xl)
         print("Post Added.")
     
     def delete_extrachannel(self):

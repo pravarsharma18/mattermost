@@ -13,7 +13,7 @@ from decouple import config
 
 class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
-    access_token = config('ZOHO_API_KEY')
+    access_token = config('ZOHO_CLIQ_API_KEY')
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"

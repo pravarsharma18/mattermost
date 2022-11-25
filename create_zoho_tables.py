@@ -49,7 +49,7 @@ class CreateZohoTables:
                 key text,start_date varchar(255),owner_email varchar(255),custom_status_color varchar(255),
                 currency_symbol varchar(255),enabled_tabs text,is_public varchar(255),id_string varchar(255),
                 created_date varchar(255),updated_date varchar(255),cascade_setting text,
-                layout_details text
+                layout_details text,  "TAGS" text
             );
         '''
         mycursor.execute(query)
