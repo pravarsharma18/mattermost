@@ -35,11 +35,6 @@ class ZohoClient:
         s, data = self.get_chat_api('api/v2/users')
         users = []
         users.extend(data['data'])
-        db_users = ZohoSqlClient.sql_get("cliq_users", "email_id")
-        try:
-            db_users = [user['email_id'] for user in db_users]
-        except:
-            db_users = None
         if data['has_more']:
             while data['has_more']:
                 s, data = self.get_chat_api(
@@ -55,10 +50,11 @@ class ZohoClient:
             lambda x: remove_punctions(x))
         users = df.to_dict('records')
         for user in users:
+            db_users = ZohoSqlClient.sql_get("cliq_users", "email_id", f"email_id='{user['email_id']}'")
             values = user.values()
             li = [i for i in values]
             if db_users:
-                if user['email_id'] not in db_users:
+                if db_users[0]['email_id'] != user['email_id']:
                     ZohoSqlClient.sql_post(
                         table_name="cliq_users", attrs=keys, values=li)
             else:
@@ -82,9 +78,10 @@ class ZohoClient:
         df = pd.DataFrame(pd.read_csv("channels.csv"))
         channels = df.to_dict("records")
         for channel in channels:
+            db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
             row = list(channel.values())
             if db_channels:
-                if channel['channel_id'] not in db_channels:
+                if db_channels[0]['channel_id'] != channel['channel_id']:
                     ZohoSqlClient.sql_post(
                         table_name="cliq_channels", attrs=keys, values=row)
             else:
@@ -96,21 +93,17 @@ class ZohoClient:
     def get_channel_members(self):
         keys = ZohoSqlClient.get_columns('cliq_channel_members')
         channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id')
-        db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email,channel_id")
-        try:
-            db_channel_members = [f"{mem['email']}__{mem['channel_id']}" for mem in db_channel_members]
-        except:
-            db_channel_members = None
         for channel in channels:
             s, data = self.get_chat_api(
                 f"api/v2/channels/{channel['channel_id']}/members")
     
             members = data['members']
             for member in members:
+                db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email,channel_id", f"email='{member['email_id']}' and channel_id='{channel['channel_id']}'")
                 values = list(member.values())
                 values.append(channel['channel_id'])
                 if db_channel_members:
-                    if (f"{member['email_id']}__{channel['channel_id']}") not in db_channel_members:
+                    if db_channel_members[0]['email'] != member['email_id'] and db_channel_members[0]['channel_id'] != channel['channel_id']:
                         ZohoSqlClient.sql_post(
                             table_name='cliq_channel_members', attrs=keys, values=values)
                 else:
@@ -120,11 +113,6 @@ class ZohoClient:
 
     def bulk_conversation(self):
         keys = ZohoSqlClient.get_columns("cliq_chats")
-        db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id")
-        try:
-            db_cliq_chats = [chat['chat_id'] for chat in db_cliq_chats]
-        except:
-            db_cliq_chats = None
         s, data = self.get_chat_api(
             'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time', header={"Content-Type": 'text/csv'})
         # s, data = self.get_chat_api(
@@ -142,6 +130,7 @@ class ZohoClient:
         df['last_modified_time'] = df['last_modified_time'].astype('int')
         chats = df.to_dict('records')
         for chat in chats:
+            db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
             s, chat_members = self.get_chat_api(
                 f'maintenanceapi/v2/chats/{chat["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
             v = [i for i in chat.values()]
@@ -149,7 +138,7 @@ class ZohoClient:
                 v)]
             values.append(json.dumps(chat_members.split()[1:]))
             if db_cliq_chats:
-                if chat['chat_id'] not in db_cliq_chats:
+                if db_cliq_chats[0]['chat_id'] != chat['chat_id']:
                     ZohoSqlClient.sql_post(
                         table_name="cliq_chats", attrs=keys, values=values)
             else:
@@ -160,16 +149,12 @@ class ZohoClient:
     def bulk_messages(self):
         # keys = ZohoSqlClient.get_columns("cliq_messages")
         chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
-        db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id")
-        try:
-            db_cliq_messages = [chat['id'] for chat in db_cliq_messages]
-        except:
-            db_cliq_messages = None
         for chat_id in chat_ids:
             s, messages = self.get_chat_api(
                 f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages')  # maintenance
             try:  # some data has no chats, to eliminate that error
                 for data in messages:
+                    db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}'")
                     keys = list(data.keys())
                     columns = ZohoSqlClient.get_columns("cliq_messages")
                     # Alter table columns as per field from api.
@@ -180,7 +165,7 @@ class ZohoClient:
                     data_values.append(chat_id["chat_id"])
                     keys.append('chat_id')
                     if db_cliq_messages:
-                        if data['id'] not in db_cliq_messages:
+                        if db_cliq_messages[0]['id'] != data['id']:
                             ZohoSqlClient.sql_post(
                                 table_name='cliq_messages', attrs=keys, values=data_values)
                     else:

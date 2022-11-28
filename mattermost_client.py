@@ -64,24 +64,17 @@ class MattermostClient:
 
     def insert_user_data(self) -> None:
         users = self.create_user_data()
-        print(len(users))
         for user in users:
             values = user.values()
             project_list = [i for i in values]
             users_values = [json.loads(json.dumps(v)) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int) or isinstance(v, str)) else v for i, v in enumerate(
                 project_list)]
             user_name = MatterSqlClient.sql_get("users", "email", f"email='{user['email']}' ")
-            print(user_name, user['email'])
             if user_name:
-                if user_name[0].get("email") == user['email']:
-                    # print("already exists")
-                    pass
-                else:
-                    print("saving..")
+                if user_name[0].get("email") != user['email']:
                     MatterSqlClient.sql_post(
                     table_name="users", attrs=user.keys(), values=users_values)
             else:
-                print("in else saving..")
                 MatterSqlClient.sql_post(
                     table_name="users", attrs=user.keys(), values=users_values)
         print(Fore.GREEN + "## Inserted User data ##")
@@ -93,23 +86,35 @@ class MattermostClient:
             "portal_users", 'email', "role like '%Portal Owner%'")
         keys = MatterSqlClient.get_columns("teams")
         for portal in portals:
+            portal_name = MatterSqlClient.sql_get("teams", "name", f"name='{portal['name']}' ")
             values = [self.generate_id(
                 26), self.get_timestamp(), self.get_timestamp(), 0, portal['name'], portal['name'].lower(), "", f"{users[0]['email']}", "O", "", "", self.generate_id(32), json.dumps(None), json.dumps(False), 0, json.dumps(False), json.dumps(False)]
-            MatterSqlClient.sql_post(
-                table_name="teams", attrs=keys, values=values)
+            if portal_name:
+                if portal_name[0].get("name") != portal['name']:
+                    MatterSqlClient.sql_post(
+                        table_name="teams", attrs=keys, values=values)
+            else:
+                MatterSqlClient.sql_post(
+                        table_name="teams", attrs=keys, values=values)
 
         print(Fore.GREEN + "## Inserted Teams data ##")
 
     def create_channel(self) -> None:
-        team = MatterSqlClient.sql_get("teams", "id")
-        # MatterSqlClient.sql_update("channels", f"teamid='{team[0]['id']}'")
-        keys = ['id', 'createat', 'updateat', 'deleteat', 'teamid', 'type', 'displayname', 'name',
-                'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'totalmsgcountroot', 'lastrootpostat']
-        values = [self.generate_id(26), self.get_timestamp(), self.get_timestamp(), 0, team[0]['id'],
-                  "O", "Town Square", "town-square", "", "", self.get_timestamp(), 0, 0, "", 0, self.get_timestamp()]
-
-        MatterSqlClient.sql_post(
-            table_name="channels", attrs=keys, values=values)
+        teams = MatterSqlClient.sql_get("teams", "id")
+        for team in teams:
+            # MatterSqlClient.sql_update("channels", f"teamid='{team[0]['id']}'")
+            keys = ['id', 'createat', 'updateat', 'deleteat', 'teamid', 'type', 'displayname', 'name',
+                    'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'totalmsgcountroot', 'lastrootpostat']
+            values = [self.generate_id(26), self.get_timestamp(), self.get_timestamp(), 0, team['id'],
+                    "O", "Town Square", "town-square", "", "", self.get_timestamp(), 0, 0, "", 0, self.get_timestamp()]
+            channel_name = MatterSqlClient.sql_get("channels", "name,teamid", f"name='town-square'")
+            if channel_name:
+                if channel_name[0].get("teamid") != team['id'] and channel_name[0].get("name") != 'town-square':
+                    MatterSqlClient.sql_post(
+                        table_name="channels", attrs=keys, values=values)
+            else:
+                MatterSqlClient.sql_post(
+                        table_name="channels", attrs=keys, values=values)
         print(Fore.GREEN + "## Channel Created ##")
 
     def insert_channel_members_data(self) -> None:
@@ -127,14 +132,20 @@ class MattermostClient:
         }
         for channel in channels:
             for user in users:
+                channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel['id']}' and userid='{user['id']}'")
                 if "system_admin" in user['roles']:
                     schemeadmin = json.dumps(True)
                 else:
                     schemeadmin = json.dumps(False)
                 values = [channel['id'], user['id'], "",
                           0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
-                MatterSqlClient.sql_post(
-                    table_name="channelmembers", attrs=keys, values=values)
+                if channel_members:
+                    if channel_members[0].get("channelid") != channel['id'] and channel_members[0].get("userid") != user['id']:
+                        MatterSqlClient.sql_post(
+                            table_name="channelmembers", attrs=keys, values=values)
+                else:
+                    MatterSqlClient.sql_post(
+                            table_name="channelmembers", attrs=keys, values=values)
         print(Fore.GREEN + "## Channels data saved ##")
 
     def insert_team_members_data(self) -> None:
@@ -152,9 +163,16 @@ class MattermostClient:
                     'users', 'id', f"email='{user['email']}'")
                 values = [team['id'], user_id[0]['id'], "", 0,
                           json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
-                # print("user_id", user_id, user['name'])
-                MatterSqlClient.sql_post(
-                    table_name="teammembers", attrs=keys, values=values)
+
+                team_members = MatterSqlClient.sql_get("teammembers", "teamid,userid", f"teamid='{team['id']}' and userid='{user_id[0]['id']}'")
+
+                if team_members:
+                    if team_members[0].get("teamid") != team['id'] and team_members[0].get("userid") != user['id']:
+                        MatterSqlClient.sql_post(
+                            table_name="teammembers", attrs=keys, values=values)
+                else:
+                    MatterSqlClient.sql_post(
+                            table_name="teammembers", attrs=keys, values=values)
         print(Fore.GREEN + "## Inserted Team Members data ##")
 
     def insert_focalboard_boards_data(self) -> None:
@@ -172,10 +190,19 @@ class MattermostClient:
             for project in projects:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"username like '%{project['created_by']}%'")
+
                 values = [self.generate_id(26), datetime.now(
                 ), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(project['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project['created_date']), self.get_timestamp_from_date(project['updated_date']), 0, ""]
-                MatterSqlClient.sql_post(
-                    table_name="focalboard_boards", attrs=keys, values=values)
+
+                focalboard = MatterSqlClient.sql_get("focalboard_boards", "team_id,title", f"team_id='{team['id']}' and title='{project['name']}'")
+
+                if focalboard:
+                    if focalboard[0].get("team_id") != team['id'] and focalboard[0].get("title") != project['name']:
+                        MatterSqlClient.sql_post(
+                            table_name="focalboard_boards", attrs=keys, values=values)
+                else:
+                    MatterSqlClient.sql_post(
+                            table_name="focalboard_boards", attrs=keys, values=values)
         print(Fore.GREEN + "## Inserted focalboard data ##")
 
     def insert_focalboard_board_members_data(self) -> None:
@@ -185,10 +212,10 @@ class MattermostClient:
         for board in boards:
             users = ZohoSqlClient.sql_get(
                 'project_users', 'email,portal_role_name', f"project_name like '%{board['title']}%'")
-            # print(users)
             for user in users:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"email='{user['email']}'")
+                focalboard_board_members = MatterSqlClient.sql_get("focalboard_board_members", "board_id,user_id", f"board_id='{board['id']}' and user_id='{user_id[0]['id']}'")
                 if ("Administrator" or "Manager") in user['portal_role_name']:
                     scheme_admin = True
                     scheme_editor = True
@@ -201,8 +228,13 @@ class MattermostClient:
                     scheme_viewer = True
                 values = [board['id'], user_id[0]['id'], "", json.dumps(
                     scheme_admin), json.dumps(scheme_editor), json.dumps(scheme_commenter), json.dumps(scheme_viewer)]
-                MatterSqlClient.sql_post(
-                    table_name="focalboard_board_members", attrs=keys, values=values)
+                if focalboard_board_members:
+                    if focalboard_board_members[0].get("board_id") != board['id'] and focalboard_board_members[0].get("user_id") != user_id[0]['id']:
+                        MatterSqlClient.sql_post(
+                            table_name="focalboard_board_members", attrs=keys, values=values)
+                else:
+                    MatterSqlClient.sql_post(
+                            table_name="focalboard_board_members", attrs=keys, values=values)
         print(Fore.GREEN + "## Inserted focalboard members data ##")
 
     def insert_focalblocks_view_data(self) -> None:
@@ -217,11 +249,18 @@ class MattermostClient:
             for task in tasks:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"username like '%{task['created_person']}%'")
+                focalboardblocks = MatterSqlClient.sql_get("focalboard_blocks", "board_id", f"board_id='{board['id']}'")
                 if board['title'] == task['project_name']:
                     values = [self.generate_id(
                         27), datetime.now(), self.generate_id(27), 1, "view", f"By Status", json.dumps({"visiblePropertyIds": [person_id]}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
-                    MatterSqlClient.sql_post(
-                        table_name="focalboard_blocks", attrs=keys, values=values)
+
+                    if focalboardblocks:
+                        if focalboardblocks[0].get("board_id") != board['id']:
+                            MatterSqlClient.sql_post(
+                                table_name="focalboard_blocks", attrs=keys, values=values)
+                    else:
+                        MatterSqlClient.sql_post(
+                            table_name="focalboard_blocks", attrs=keys, values=values)
                     break
         print(Fore.GREEN + "## Inserted Focal Blocks Views ##")
 
@@ -239,9 +278,6 @@ class MattermostClient:
                 board['card_properties'], "Created By")
             assign_id = card_propety_id(
                 board['card_properties'], "Assignee")
-            # print(select_id)
-            # print(person_id)
-            # print(assign_id)
             for task in tasks:
                 assignees = list(owner['email']
                                  for owner in json.loads(task['details'])['owners'])
@@ -256,10 +292,16 @@ class MattermostClient:
                         task['description'], "html.parser").get_text()
                     description_id = ""
                     if task_description:
+                        focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{task_description}'")
                         description_values = [self.generate_id(
                             27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
-                        description_id = MatterSqlClient.sql_post(
-                            table_name='focalboard_blocks', attrs=keys, values=description_values, returning='id')
+                        if focalboardblocks_text:
+                            if focalboardblocks_text[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "text" and focalboardblocks_text[0]['title'] != task_description:
+                                description_id = MatterSqlClient.sql_post(
+                                    table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
+                        else:
+                            description_id = MatterSqlClient.sql_post(
+                                    table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
                     fields = {
                         "contentOrder": [description_id],
                         "isTemplate": False,
@@ -269,10 +311,16 @@ class MattermostClient:
                             assign_id: assignee_ids,
                         }
                     }
+                    focalboardblocks_card = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='card' and title='{task['name']}'")
                     values = [self.generate_id(
                         27), datetime.now(), self.generate_id(27), 1, "card", f"{task['name']}", json.dumps(fields), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
-                    card_id = MatterSqlClient.sql_post(
-                        table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
+                    if focalboardblocks_card:
+                        if focalboardblocks_card[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "card" and focalboardblocks_text[0]['title'] != task['name']:
+                            card_id = MatterSqlClient.sql_post(
+                                table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
+                    else:
+                        card_id = MatterSqlClient.sql_post(
+                                table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
                     if description_id:
                         '''
                         update the parent id of text component
@@ -283,21 +331,21 @@ class MattermostClient:
 
     def main(self) -> None:
         self.insert_user_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_team_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.create_channel()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_channel_members_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_team_members_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_focalboard_boards_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_focalboard_board_members_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_focalblocks_view_data()
-        time.sleep(1)
+        # time.sleep(1)
         self.insert_focalblocks_card_data()
 
 

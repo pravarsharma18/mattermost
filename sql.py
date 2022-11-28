@@ -134,6 +134,7 @@ class MatterSqlClient:
             query = f"SELECT {fields} FROM {table_name}"
         mycursor.execute(query)
         myresult = mycursor.fetchall()
+        
         if myresult:
             li = []
             for i in myresult:

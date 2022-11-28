@@ -4,7 +4,7 @@ import requests
 from PIL import Image
 from decouple import config
 from datetime import datetime
-
+import time
 from sql import MatterSqlClient
 from utils import remove_punctions, generate_id
 from zoho_client import ZohoClient
@@ -16,7 +16,7 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
             datetime.fromtimestamp(timestamp / 1000), '%Y%m%d')
-        id_channel = channel_id[0]['id']
+        id_channel = channel_id['id']
         sender_name = remove_punctions(
             json.loads(zoho_cliq_message['sender'])['name'])
         sender_id = MatterSqlClient.sql_get(
@@ -48,32 +48,41 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
         newsize = (120, 120)
         im1 = im.resize(newsize)
         im1.save(file_path + '_thumb.'.join(file['name'].split('.')), optimize=True)
-        MatterSqlClient.sql_post(
-            table_name="posts", attrs=posts_keys, values=image_posts_values)
 
-        MatterSqlClient.sql_post(
-            table_name="fileinfo", attrs=fileinfo_keys, values=type_images_fileinfo_values)
+        fileinfo_db = MatterSqlClient.sql_get("fileinfo", "name,createat,creatorid", f"name='{file['name']}' and createat='{zoho_cliq_message['time']}' and creatorid='{sender_id[0]['id']}'")
+
+        if fileinfo_db:
+            if fileinfo_db[0]['name'] != file['name'] and fileinfo_db[0]['createat'] != zoho_cliq_message['time'] and fileinfo_db[0]['creatorid'] != sender_id[0]['id']:
+                MatterSqlClient.sql_post(
+                    table_name="posts", attrs=posts_keys, values=image_posts_values)
+                MatterSqlClient.sql_post(
+                    table_name="fileinfo", attrs=fileinfo_keys, values=type_images_fileinfo_values)
+        else:
+            MatterSqlClient.sql_post(
+                    table_name="posts", attrs=posts_keys, values=image_posts_values)
+            MatterSqlClient.sql_post(
+                    table_name="fileinfo", attrs=fileinfo_keys, values=type_images_fileinfo_values)
+
     except:
         pass
 
 
 def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type):
-        print(type)
     # try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
         datetime.fromtimestamp(timestamp / 1000), '%Y%m%d')
-        id_channel = channel_id[0]['id']
+        id_channel = channel_id['id']
         sender_name = remove_punctions(
             json.loads(zoho_cliq_message['sender'])['name'])
-        sender_id = MatterSqlClient.sql_get(
-            "users", 'id', f"username='{sender_name}'")
-
+        # try:
+        sender_id = MatterSqlClient.sql_get("users", "id", f"username like '%{sender_name}%'")
+        
         xml_fileinfo_id = generate_id(26)
         posts_id = generate_id(26)
         path = f"{date_folder}/teams/noteam/channels/{id_channel}/users/{sender_id[0]['id']}/{xml_fileinfo_id}/"
         file_path = f"{mattermost_base_path}{path}" 
-        print(file['name'])
+
         if type == "application/x-ooxml":
             extension = file['name'].split('.')[-1]
             minetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -103,12 +112,98 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
             }).content
         with open(f"{file_path}{file['name']}", 'wb') as f:
             f.write(r)
-        
-        MatterSqlClient.sql_post(
-            table_name="posts", attrs=posts_keys, values=xml_posts_values)
+        fileinfo_db = MatterSqlClient.sql_get("fileinfo", "name,createat,creatorid", f"name='{file['name']}' and createat='{zoho_cliq_message['time']}' and creatorid='{sender_id[0]['id']}'")
 
-        MatterSqlClient.sql_post(
-            table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
+        if fileinfo_db:
+            if fileinfo_db[0]['name'] != file['name'] and fileinfo_db[0]['createat'] != zoho_cliq_message['time'] and fileinfo_db[0]['creatorid'] != sender_id[0]['id']:
+                MatterSqlClient.sql_post(
+                    table_name="posts", attrs=posts_keys, values=xml_posts_values)
+                MatterSqlClient.sql_post(
+                    table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
+        else:
+            MatterSqlClient.sql_post(
+                    table_name="posts", attrs=posts_keys, values=xml_posts_values)
+            MatterSqlClient.sql_post(
+                table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
     # except:
     #     pass
+
+def get_timestamp() -> int:
+        return int(time.time() * 1000)
+
+def channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys):
+    notify_props = {
+            "push": "default",
+            "email": "default",
+            "desktop": "default",
+            "mark_unread": "all",
+            "ignore_channel_mentions": "default"
+        }
+    member_1 = [channel_id, rec_ids[0], "",
+                            0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+    if channel_id:
+        channel_member1 = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id}' and userid='{rec_ids[0]}'")
+        if channel_member1:
+            if channel_member1[0]['channelid'] != channel_id and channel_member1[0]['userid'] != rec_ids[0]:
+                MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_1)
+        else:
+            MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_1)
     
+    # channel_member1_reverse = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id_reverse}' and userid='{rec_ids_reverse[0]}'")
+    # member_1_reverse = [channel_id_reverse, rec_ids_reverse[0], "",
+    #             0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+    # if channel_member1_reverse:
+    #     if channel_member1_reverse[0]['channelid'] != channel_id_reverse and channel_member1_reverse[0]['userid'] != rec_ids_reverse[0]:
+    #         MatterSqlClient.sql_post(
+    #             table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
+    # else:
+    #     MatterSqlClient.sql_post(
+    #         table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
+
+    channel_member2 = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id}' and userid='{rec_ids[1]}'")
+    member_2 = [channel_id, rec_ids[1], "",
+                0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+    if channel_member2:
+        if channel_member2[0]['channelid'] != channel_id and channel_member2[0]['userid'] != rec_ids[1]:
+            MatterSqlClient.sql_post(
+                table_name='channelmembers', attrs=channel_members, values=member_2)
+    else:
+        MatterSqlClient.sql_post(
+                table_name='channelmembers', attrs=channel_members, values=member_2)
+
+    # chdelete from channels where type='D' and id not inname='channelmembers', attrs=channel_members, values=member_2_reverse)
+
+    # insert in prefrence Table
+    # prefrence_values_channel_show1 = [rec_ids[0],
+    #                                     "direct_channel_show", rec_ids[1], "true"]
+    # MatterSqlClient.sql_post(
+    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
+
+    # prefrence_values_open_time1 = [rec_ids[0],
+    #                                 "channel_open_time", channel_id, get_timestamp()]
+    # MatterSqlClient.sql_post(
+    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1)
+    
+    # prefrence_values_open_time1_reverse = [rec_ids_reverse[0],
+    #                                 "channel_open_time", channel_id_reverse, get_timestamp()]
+    # MatterSqlClient.sql_post(
+    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1_reverse)
+
+    # prefrence_values_channel_show2 = [rec_ids[1],
+    #                                     "direct_channel_show", rec_ids[0], "true"]
+    # MatterSqlClient.sql_post(
+    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
+
+    # prefrence_values_open_time2 = [rec_ids[1],
+    #                                 "channel_open_time", channel_id, get_timestamp()]
+
+    # MatterSqlClient.sql_post(
+    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2)
+    
+    # prefrence_values_open_time2_reverse = [rec_ids_reverse[1],
+    #                                 "channel_open_time", channel_id_reverse, get_timestamp()]
+
+    # MatterSqlClient.sql_post(
+    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2_reverse)

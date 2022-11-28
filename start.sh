@@ -16,7 +16,7 @@ python3 zoho_cliq_client.py
 
 ### Get Insert in Mattermost DB
 
-# python3 mattermost_client.py
-# python3 mattermost_channel_client.py
+python3 mattermost_client.py
+python3 mattermost_channel_client.py
 
 echo "<============================Data Migration Completed============================>"
