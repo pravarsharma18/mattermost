@@ -107,6 +107,7 @@ class ZohoClient:
                 # to remove spaces and add '.' as mattermost username doesnot support spaces for username
                 df = pd.DataFrame(users['users'])
                 df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+                df['active'] = df['active'].fillna(False)
                 users = df.to_dict('records')
 
                 for user in users:
