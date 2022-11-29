@@ -44,7 +44,6 @@ class MattermostClient:
         for team in teams:
             for channel in channels:
                 chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel['name'][1:]}%'" )
-                print(channel['name'], chat_id[0]['chat_id'], team['id'])
                 
                 channels = MatterSqlClient.sql_get("channels", "teamid,name", f"teamid='{team['id']}' and name='{channel['name'].split('#')[1]}'")
                 creator_id = MatterSqlClient.sql_get(
@@ -68,7 +67,6 @@ class MattermostClient:
         channel_members = MatterSqlClient.get_columns('channelmembers')
         
         for chat in chats:
-            # if chat['chat_type'] == "dm":
             recipient_summaries = json.loads(chat['recipients_summary'])
             rec_ids = []
             for recipient_summary in recipient_summaries:
@@ -87,11 +85,10 @@ class MattermostClient:
                 channel_values_reverse = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
                                   "D", "", rec_ids_str_reverse, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
 
-                channels_db = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str}' and chat_id='{chat['chat_id']}'")
-
+                channels_db = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str}'")
                 channel_id = ""
                 if channels_db:
-                    if channels_db[0]['name'] != rec_ids_str and channels_db[0]['chat_id'] != chat['chat_id']:
+                    if channels_db[0]['name'] != rec_ids_str:
                         channel_id = MatterSqlClient.sql_post(
                             table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
                 else:
@@ -132,7 +129,6 @@ class MattermostClient:
             for user in users:
                 user_id = MatterSqlClient.sql_get(
                     'users', 'id', f"email='{user['email']}'")
-                print(zoho_channel['name'], channel, user_id)
                 channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel[0]['id']}' and userid='{user_id[0]['id']}'")
                 if "super_admin" in user['user_role']:
                     schemeadmin = json.dumps(True)
@@ -140,6 +136,7 @@ class MattermostClient:
                     schemeadmin = json.dumps(False)
                 values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
                     notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+
                 if channel_members:
                     if channel_members[0].get("channelid") != channel[0]['id'] and channel_members[0].get("userid") != user_id[0]['id']:
                         MatterSqlClient.sql_post(
@@ -159,11 +156,10 @@ class MattermostClient:
         xl = 0
         img = 0
         for mm_channel in mm_channels:
-            print("zoho_cliq_chat['chat_id']",mm_channel['chat_id'])
             # channel_id = MatterSqlClient.sql_get(
             #     'channels', 'name, id', f"chat_id='{zoho_cliq_chat['chat_id']}'")
             for zoho_cliq_message in zoho_cliq_messages:
-                if mm_channel['chat_id'] == zoho_cliq_message['chat_id']:
+                if mm_channel.get('chat_id') == zoho_cliq_message.get('chat_id'):
                     if zoho_cliq_message['type'] == 'text':
                         # try:  # bot users are not in mattermost users table
                             user_id = MatterSqlClient.sql_get('users', 'id', f"username like '%{remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])}%'")
