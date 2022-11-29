@@ -8,7 +8,7 @@ import sys
 from typing import Tuple
 from decouple import config
 from utils import create_new_column, remove_punctions
-
+import time
 
 class ZohoClient:
     zoho_project_base_url = "https://projectsapi.zoho.in/"
@@ -24,7 +24,10 @@ class ZohoClient:
             "Content-Type": "application/json"
         }
         r = requests.get(url, headers=headers)
-        return r.status_code, r.json()
+        if r.status_code == 200:
+            return r.status_code, r.json()
+        else:
+            return r.status_code, r
 
     def get_chat_api(self, path) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -100,43 +103,56 @@ class ZohoClient:
 
     def save_portal_users_data(self) -> None:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
+        api_range = 200
+        index = 1
         for portal_id in portal_ids:
-            status_code, users = self.get_project_api(
-                f"restapi/portal/{portal_id['id']}/users/?user_type=all")
-            if not status_code in range(200, 299):
-                return users
-            # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-            df = pd.DataFrame(users['users'])
-            df['name'] = df['name'].apply(lambda x: remove_punctions(x))
-            users = df.to_dict('records')
+            while True:
+                print(index, api_range)
+                status_code, users = self.get_project_api(
+                    f"restapi/portal/{portal_id['id']}/users/?index={index}&range={api_range}&user_type=all")
+                index = api_range + index
+                # print(status_code)
+                if status_code == 204:
+                    break
 
-            for user in users:
-                portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
-                keys = list(user.keys())
-                columns = ZohoSqlClient.get_columns("portal_users")
-                # Alter table columns as per field from api.
-                create_new_column(keys, columns, "portal_users")
+                # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+                df = pd.DataFrame(users['users'])
+                df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+                users = df.to_dict('records')
 
-                values = user.values()
-                user_list = [i for i in values]
-                li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                    user_list)]
-                if portal_users_id:
-                    if portal_users_id[0]['email'] != user['email']:
+                for user in users:
+                    portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
+                    keys = list(user.keys())
+                    columns = ZohoSqlClient.get_columns("portal_users")
+                    # Alter table columns as per field from api.
+                    create_new_column(keys, columns, "portal_users")
+
+                    values = user.values()
+                    user_list = [i for i in values]
+                    li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                        user_list)]
+                    if portal_users_id:
+                        if portal_users_id[0]['email'] != user['email']:
+                            ZohoSqlClient.sql_post(
+                                table_name="portal_users", attrs=user.keys(), values=li)
+                    else:
                         ZohoSqlClient.sql_post(
-                            table_name="portal_users", attrs=user.keys(), values=li)
-                else:
-                    ZohoSqlClient.sql_post(
-                            table_name="portal_users", attrs=user.keys(), values=li)
+                                table_name="portal_users", attrs=user.keys(), values=li)
         print(Fore.GREEN + "## Portal Users saved in db ##")
 
     def save_project_users_data(self) -> None:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
         project_ids = ZohoSqlClient.sql_get("projects", "id,name")
+        count = 1
         for portal_id in portal_ids:
             for project_id in project_ids:
+                if count == 90:
+                    count = 1
+                    print("Api is throttled, wait for 130 seconds....")
+                    time.sleep(130)
                 status_code, users = self.get_project_api(
                     f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
+                count +=1
                 if not status_code in range(200, 299):
                     return users
                 # to remove spaces and add '.' as mattermost username doesnot support spaces for username
