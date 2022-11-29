@@ -98,7 +98,7 @@ class ZohoClient:
         for portal_id in portal_ids:
             while True:
                 status_code, users = self.get_project_api(
-                    f"restapi/portal/{portal_id['id']}/users/?index={self.index}&range={self.api_range}&user_type=all")
+                    f"restapi/portal/{portal_id['id']}/users/?index={self.index}&range={self.api_range}&user_type=active")
                 self.index = self.api_range + self.index
                 # print(status_code)
                 if status_code == 204:
