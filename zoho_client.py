@@ -15,6 +15,8 @@ class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/api/v2/"
 
     access_token = config('ZOHO_PROJECT_API_KEY')
+    api_range = 200
+    index = 1
     # restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/
 
     def get_project_api(self, path) -> Tuple[int, dict]:
@@ -29,21 +31,10 @@ class ZohoClient:
         else:
             return r.status_code, r
 
-    def get_chat_api(self, path) -> Tuple[int, dict]:
-        url = f"{self.zoho_chat_base_url}{path}"
-        headers = {
-            "Authorization": f"Zoho-oauthtoken {self.access_token}",
-            "Content-Type": "application/json"
-
-        }
-        r = requests.get(url, headers=headers)
-        print("******************", r)
-        return r.status_code, r.json()
-
     def get_portal_ids(self) -> list:
         status_code, data = self.get_project_api("restapi/portals/")
         if not status_code in range(200, 299):
-            return data
+            return data.json()
         return data['portals']
 
     def save_portal_data(self) -> None:
@@ -103,14 +94,12 @@ class ZohoClient:
 
     def save_portal_users_data(self) -> None:
         portal_ids = ZohoSqlClient.sql_get("portals", "id")
-        api_range = 200
-        index = 1
+        
         for portal_id in portal_ids:
             while True:
-                print(index, api_range)
                 status_code, users = self.get_project_api(
-                    f"restapi/portal/{portal_id['id']}/users/?index={index}&range={api_range}&user_type=all")
-                index = api_range + index
+                    f"restapi/portal/{portal_id['id']}/users/?index={self.index}&range={self.api_range}&user_type=all")
+                self.index = self.api_range + self.index
                 # print(status_code)
                 if status_code == 204:
                     break
@@ -230,5 +219,3 @@ class ZohoClient:
 if __name__ == '__main__':
     print(Fore.YELLOW + "\n<========Saving Zoho Data in DB=========>\n")
     ZohoClient().main()
-    # ZohoClient().save_users_data()
-    # ZohoClient().remove_duplicate_entries_from_user_data()

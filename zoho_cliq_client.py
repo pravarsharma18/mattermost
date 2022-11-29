@@ -193,5 +193,3 @@ class ZohoClient:
 if __name__ == '__main__':
     print(Fore.YELLOW + "\n<========Saving Zoho Data in DB=========>\n")
     ZohoClient().main()
-    # ZohoClient().save_users_data()
-    # ZohoClient().remove_duplicate_entries_from_user_data()

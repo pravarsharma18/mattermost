@@ -353,4 +353,3 @@ if __name__ == "__main__":
     print(Fore.YELLOW + "\n<========Saving Mattermost Data in DB=========>\n")
     client = MattermostClient()
     client.main()
-
