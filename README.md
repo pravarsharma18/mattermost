@@ -43,6 +43,12 @@ cd /opt/mattermost && sudo -u mattermost ./bin/mattermost
 
 # Manual commands in case error in above command
 
+### Delete channel data and its related table data
+
+```
+python3 mattermost_chat_delete.py
+```
+
 ### Delete data from Mattermost and Zoho DB.
 
 ```
