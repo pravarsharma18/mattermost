@@ -174,7 +174,7 @@ class ZohoClient:
                         user_list = [i for i in values]
                         li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                             user_list)]
-                        li.append(project_id['name'])
+                        li.insert(0, project_id['name'])
                         if project_users:
                             if project_users[0]['email'] != user['email'] and project_users[0]['project_name'] != project_id['name']:
                                 ZohoSqlClient.sql_post(

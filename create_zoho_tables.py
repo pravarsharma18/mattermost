@@ -60,11 +60,11 @@ class CreateZohoTables:
         mycursor = ZohoSqlClient.zohomydb.cursor()
         query = '''
             CREATE TABLE if not exists project_users (
-                profile_type varchar(255),role varchar(255),portal_role_name varchar(255),
+                project_name varchar(255), profile_type varchar(255),role varchar(255),portal_role_name varchar(255),
                 active varchar(255),zpuid varchar(255),project_profile_id varchar(255),
                 profile_id varchar(255),name varchar(255),portal_profile_name varchar(255),
                 portal_role_id varchar(255),id varchar(255),email varchar(255),chat_access varchar(255),
-                is_resource varchar(255), project_name varchar(255)
+                is_resource varchar(255)
             );
         '''
         mycursor.execute(query)
