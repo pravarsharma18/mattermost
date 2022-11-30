@@ -55,15 +55,16 @@ class ZohoClient:
                 # Alter table columns as per field from api.
                 create_new_column(keys, columns, "cliq_users")
                 db_users = ZohoSqlClient.sql_get("cliq_users", "email_id", f"email_id='{user['email_id']}'")
-                values = user.values()
-                li = [i for i in values]
+                # li = [i for i in values]
+                values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                        list(user.values()))]
                 if db_users:
                     if db_users[0]['email_id'] != user['email_id']:
                         ZohoSqlClient.sql_post(
-                            table_name="cliq_users", attrs=keys, values=li)
+                            table_name="cliq_users", attrs=keys, values=values)
                 else:
                     ZohoSqlClient.sql_post(
-                            table_name="cliq_users", attrs=keys, values=li)
+                            table_name="cliq_users", attrs=keys, values=values)
             print(Fore.GREEN + "Users Inserted")
         except Exception as e:
             save_logs(e)
@@ -91,13 +92,15 @@ class ZohoClient:
 
                 db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
                 row = list(channel.values())
+                values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                row)]
                 if db_channels:
                     if db_channels[0]['channel_id'] != channel['channel_id']:
                         ZohoSqlClient.sql_post(
-                            table_name="cliq_channels", attrs=keys, values=row)
+                            table_name="cliq_channels", attrs=keys, values=values)
                 else:
                     ZohoSqlClient.sql_post(
-                        table_name="cliq_channels", attrs=keys, values=row)
+                        table_name="cliq_channels", attrs=keys, values=values)
 
             print(Fore.GREEN + "Channels Inserted")
         except Exception as e:
