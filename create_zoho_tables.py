@@ -93,7 +93,7 @@ class CreateZohoTables:
                 details text, id varchar(255), created_time varchar(255), work text,
                 start_date_format varchar(255), isparent varchar(255), completed_time_long varchar(255), 
                 work_type text, completed varchar(255), task_followers text, priority text, 
-                created_by varchar(255), tags text, last_updated_time varchar(255), name varchar(255), 
+                created_by varchar(255), tags text, last_updated_time varchar(255), name text, 
                 is_docs_assocoated text,tasklist text, last_updated_time_format varchar(255), 
                 billingtype varchar(255), order_sequence varchar(255), status text, end_date varchar(255), 
                 is_sprints_task varchar(255), milestone_id varchar(255), link text, description text,
@@ -101,7 +101,7 @@ class CreateZohoTables:
                 end_date_long varchar(255), duration varchar(255), created_by_email varchar(255), 
                 start_date varchar(255), created_person varchar(255), created_time_long varchar(255), 
                 is_reminder_set varchar(255),is_recurrence_set varchar(255), created_time_format varchar(255), 
-                subtasks varchar(255), duration_type varchar(255), percent_complete varchar(255), 
+                subtasks text, duration_type varchar(255), percent_complete varchar(255), 
                 "GROUP_NAME" text, completed_time varchar(255), id_string varchar(255), 
                 log_hours text, key varchar(255)
             );

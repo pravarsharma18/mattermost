@@ -198,29 +198,31 @@ class ZohoClient:
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/tasks/")
                     if not status_code in range(200, 299):
                         return tasks
+                    try:
+                        for task in tasks['tasks']:
+                            tasks_id = ZohoSqlClient.sql_get("tasks", "id,project_name", f"id='{task['id']}' and project_name='{project_id['name']}'")
+                            values = task.values()
+                            keys = list(task.keys())
+                            columns = ZohoSqlClient.get_columns("tasks")
 
-                    for task in tasks['tasks']:
-                        tasks_id = ZohoSqlClient.sql_get("tasks", "id,project_name", f"id='{task['id']}' and project_name='{project_id['name']}'")
-                        values = task.values()
-                        keys = list(task.keys())
-                        columns = ZohoSqlClient.get_columns("tasks")
+                            # Alter table columns as per field from api.
+                            create_new_column(keys, columns, "tasks")
+                            columns = ZohoSqlClient.get_columns("tasks")
 
-                        # Alter table columns as per field from api.
-                        create_new_column(keys, columns, "tasks")
-                        columns = ZohoSqlClient.get_columns("tasks")
-
-                        values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                            values)]
-                        values.insert(0, project_id['name'])
-                        keys.insert(0, 'project_name')
-                        
-                        if tasks_id:
-                            if tasks_id[0]['id'] != str(task['id']) and tasks_id[0]['project_name'] != project_id['name']:
+                            values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                values)]
+                            values.insert(0, project_id['name'])
+                            keys.insert(0, 'project_name')
+                            
+                            if tasks_id:
+                                if tasks_id[0]['id'] != str(task['id']) and tasks_id[0]['project_name'] != project_id['name']:
+                                    ZohoSqlClient.sql_post(
+                                        table_name="tasks", attrs=keys, values=values)
+                            else:
                                 ZohoSqlClient.sql_post(
-                                    table_name="tasks", attrs=keys, values=values)
-                        else:
-                            ZohoSqlClient.sql_post(
-                                    table_name="tasks", attrs=keys, values=values)
+                                        table_name="tasks", attrs=keys, values=values)
+                    except:
+                        pass
             print(Fore.GREEN + "## Tasks saved in db ##")
         except Exception as e:
             save_logs()
