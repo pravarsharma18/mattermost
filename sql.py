@@ -99,6 +99,14 @@ class ZohoSqlClient:
         columns = mycursor.fetchall()
         keys = [column[0] for column in columns]
         return keys
+    
+    @classmethod
+    def get_count(self, table_name):
+        mycursor = self.get_cursor()
+        query = f"select count(*) from {table_name}"
+        mycursor.execute(query)
+        count = mycursor.fetchall()
+        return count
 
 
 class MatterSqlClient:
@@ -230,3 +238,11 @@ class MatterSqlClient:
         columns = mycursor.fetchall()
         keys = [column[0] for column in columns]
         return keys
+
+    @classmethod
+    def get_count(self, table_name):
+        mycursor = self.get_cursor()
+        query = f"select count(*) from {table_name}"
+        mycursor.execute(query)
+        count = mycursor.fetchall()
+        return count
