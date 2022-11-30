@@ -64,7 +64,7 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
                     table_name="fileinfo", attrs=fileinfo_keys, values=type_images_fileinfo_values)
 
     except Exception as e:
-        save_logs()
+        save_logs(e)
 
 
 def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type):
@@ -126,7 +126,7 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
             MatterSqlClient.sql_post(
                 table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
     except Exception as e:
-        save_logs()
+        save_logs(e)
 
 def get_timestamp() -> int:
         return int(time.time() * 1000)

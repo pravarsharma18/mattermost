@@ -26,7 +26,7 @@ class MattermostClient:
 
     def create_user_data(self) -> list:
         users = ZohoSqlClient.sql_get(
-            "portal_users", "name, role, email,role_name")
+            "portal_users", "name, role, email,role_name,active")
         li = []
         keys = "id,createat,updateat,deleteat,username,password,authservice,email,nickname,firstname,lastname,emailverified,roles,allowmarketing,props,notifyprops,lastpasswordupdate,lastpictureupdate,failedattempts,locale,mfasecret,position,mfaactive,timezone"
         if not users:
@@ -37,6 +37,10 @@ class MattermostClient:
                 roles = "system_user system_admin"
             else:
                 roles = "system_user"
+            if not user['active']:
+                delete_at = self.get_timestamp()
+            else:
+                delete_at = 0
             notify_props = {
                 "push": "mention",
                 "email": "true",
@@ -57,7 +61,7 @@ class MattermostClient:
                 "useAutomaticTimezone": "true"
             }
             values = [self.generate_id(26), self.get_timestamp(
-            ), self.get_timestamp(), 0, user['name'], "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", user['email'], "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
+            ), self.get_timestamp(), delete_at, user['name'], "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", user['email'], "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
 
             li.append(dict(zip(keys.split(','), values)))
         return li
@@ -80,19 +84,18 @@ class MattermostClient:
                         table_name="users", attrs=user.keys(), values=users_values)
             print(Fore.GREEN + "## Inserted User data ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_team_data(self) -> None:
         try:
             portals = ZohoSqlClient.sql_get(
-                "portals", "name")
-            users = ZohoSqlClient.sql_get(
-                "portal_users", 'email', "role like '%Portal Owner%'")
+                "portals", "name,portal_owner")
             keys = MatterSqlClient.get_columns("teams")
             for portal in portals:
+                owner = json.loads(portal['portal_owner'])
                 portal_name = MatterSqlClient.sql_get("teams", "name", f"name='{portal['name']}' ")
                 values = [self.generate_id(
-                    26), self.get_timestamp(), self.get_timestamp(), 0, portal['name'], portal['name'].lower(), "", f"{users[0]['email']}", "O", "", "", self.generate_id(32), json.dumps(None), json.dumps(False), 0, json.dumps(False), json.dumps(False)]
+                    26), self.get_timestamp(), self.get_timestamp(), 0, portal['name'], portal['name'].lower(), "", f"{owner['email']}", "O", "", "", self.generate_id(32), json.dumps(None), json.dumps(False), 0, json.dumps(False), json.dumps(False)]
                 if portal_name:
                     if portal_name[0].get("name") != portal['name']:
                         MatterSqlClient.sql_post(
@@ -103,7 +106,7 @@ class MattermostClient:
 
             print(Fore.GREEN + "## Inserted Teams data ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def create_channel(self) -> None:
         try:
@@ -124,7 +127,7 @@ class MattermostClient:
                             table_name="channels", attrs=keys, values=values)
             print(Fore.GREEN + "## Channel Created ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_channel_members_data(self) -> None:
         try:
@@ -158,7 +161,7 @@ class MattermostClient:
                                 table_name="channelmembers", attrs=keys, values=values)
             print(Fore.GREEN + "## Channels data saved ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_team_members_data(self) -> None:
         try:
@@ -188,7 +191,7 @@ class MattermostClient:
                                 table_name="teammembers", attrs=keys, values=values)
             print(Fore.GREEN + "## Inserted Team Members data ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_focalboard_boards_data(self) -> None:
         try:
@@ -221,7 +224,7 @@ class MattermostClient:
                                 table_name="focalboard_boards", attrs=keys, values=values)
             print(Fore.GREEN + "## Inserted focalboard data ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_focalboard_board_members_data(self) -> None:
         try:
@@ -256,7 +259,7 @@ class MattermostClient:
                                 table_name="focalboard_board_members", attrs=keys, values=values)
             print(Fore.GREEN + "## Inserted focalboard members data ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_focalblocks_view_data(self) -> None:
         try:
@@ -286,7 +289,7 @@ class MattermostClient:
                         break
             print(Fore.GREEN + "## Inserted Focal Blocks Views ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_focalblocks_card_data(self) -> None:
         try:
@@ -350,11 +353,14 @@ class MattermostClient:
                             '''
                             update the parent id of text component
                             '''
-                            MatterSqlClient.sql_update(
-                                table_name="focalboard_blocks", set=f"parent_id='{card_id}'", where=f"id='{description_id}'")
+                            try:
+                                MatterSqlClient.sql_update(
+                                    table_name="focalboard_blocks", set=f"parent_id='{card_id}'", where=f"id='{description_id}'")
+                            except:
+                                pass
             print(Fore.GREEN + "## Inserted Focal Blocks Cards ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def main(self) -> None:
         self.insert_user_data()

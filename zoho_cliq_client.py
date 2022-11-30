@@ -66,7 +66,7 @@ class ZohoClient:
                             table_name="cliq_users", attrs=keys, values=li)
             print(Fore.GREEN + "Users Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def bulk_channels(self):
         try:
@@ -101,7 +101,7 @@ class ZohoClient:
 
             print(Fore.GREEN + "Channels Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def get_channel_members(self):
         try:
@@ -134,7 +134,7 @@ class ZohoClient:
                                 table_name='cliq_channel_members', attrs=keys, values=li)
             print(Fore.GREEN + "Channel Members Saved")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def bulk_conversation(self):
         try:
@@ -176,7 +176,7 @@ class ZohoClient:
                         table_name="cliq_chats", attrs=keys, values=values)
             print(Fore.GREEN + "Conversations Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def bulk_messages(self):
         try:
@@ -211,7 +211,7 @@ class ZohoClient:
                     pass
             print(Fore.GREEN + "Messages Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def main(self):
         """

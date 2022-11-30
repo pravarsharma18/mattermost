@@ -63,7 +63,7 @@ class ZohoClient:
                     ZohoSqlClient.sql_post(
                         table_name="portals", attrs=portal.keys(), values=li)
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
         print(Fore.GREEN + "## Portals saved in db ##")
 
@@ -97,7 +97,7 @@ class ZohoClient:
                             table_name="projects", attrs=project.keys(), values=li)
             print(Fore.GREEN + "## Projects saved in db ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def save_portal_users_data(self) -> None:
         try:
@@ -138,7 +138,7 @@ class ZohoClient:
                                     table_name="portal_users", attrs=keys, values=li)
             print(Fore.GREEN + "## Portal Users saved in db ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def save_project_users_data(self) -> None:
         try:
@@ -185,7 +185,7 @@ class ZohoClient:
                                         table_name="project_users", attrs=keys, values=li)
             print(Fore.GREEN + "## Project Users saved in db ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def save_tasks_data(self) -> None:
         try:
@@ -225,7 +225,7 @@ class ZohoClient:
                         pass
             print(Fore.GREEN + "## Tasks saved in db ##")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def main(self):
         """

@@ -59,7 +59,7 @@ class MattermostClient:
                                 table_name='channels', attrs=keys, values=values)
             print(Fore.GREEN + "Channel Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_chats(self):
         try:
@@ -112,7 +112,7 @@ class MattermostClient:
 
             print(Fore.GREEN + "Chats Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_channel_members(self):
         try:
@@ -153,7 +153,7 @@ class MattermostClient:
                                 table_name="channelmembers", attrs=keys, values=values)
             print(Fore.GREEN + "Channle Members Inserted")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def insert_posts(self):
         try:
@@ -203,7 +203,7 @@ class MattermostClient:
             # print("xl", xl)
             print("Post Added.")
         except Exception as e:
-            save_logs()
+            save_logs(e)
     
     def delete_extrachannel(self):
         try:
@@ -213,7 +213,7 @@ class MattermostClient:
             MatterSqlClient.raw_query(query)
             print("Deleted extra created channels")
         except Exception as e:
-            save_logs()
+            save_logs(e)
 
     def main(self):
         self.insert_channels()

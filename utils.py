@@ -59,9 +59,10 @@ def remove_punctions(value):
     punctuations = '!"#$%&\'()*+,-/:;<=>?@[\\]^_`{|}~'
     return '.'.join("".join([i for i in value if i not in punctuations]).split()).lower()
 
-def save_logs():
+def save_logs(e):
     print('print_exception():')
     var = traceback.format_exc()
     print(var)
+    print(e)
     ZohoSqlClient.sql_post(
                 table_name="logs", attrs=['data'], values=[var])
