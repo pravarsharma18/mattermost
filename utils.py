@@ -2,7 +2,11 @@
 from sql import MatterSqlClient, ZohoSqlClient
 import string
 import random
+import logging
+import traceback
+import sys
 
+logger = logging.getLogger('StackDriverHandler')
 
 def generate_id(size_of_id) -> str:
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=size_of_id))
@@ -54,3 +58,10 @@ def create_new_column(old_columns, columns, table_name):
 def remove_punctions(value):
     punctuations = '!"#$%&\'()*+,-/:;<=>?@[\\]^_`{|}~'
     return '.'.join("".join([i for i in value if i not in punctuations]).split()).lower()
+
+def save_logs():
+    print('print_exception():')
+    var = traceback.format_exc()
+    print(var)
+    ZohoSqlClient.sql_post(
+                table_name="logs", attrs=['data'], values=[var])

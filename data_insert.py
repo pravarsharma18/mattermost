@@ -6,7 +6,7 @@ from decouple import config
 from datetime import datetime
 import time
 from sql import MatterSqlClient
-from utils import remove_punctions, generate_id
+from utils import remove_punctions, generate_id, save_logs
 from zoho_client import ZohoClient
 
 mattermost_base_path = config('MATTERMOST_PATH')
@@ -63,12 +63,12 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
             MatterSqlClient.sql_post(
                     table_name="fileinfo", attrs=fileinfo_keys, values=type_images_fileinfo_values)
 
-    except:
-        pass
+    except Exception as e:
+        save_logs()
 
 
 def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type):
-    # try:
+    try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
         datetime.fromtimestamp(timestamp / 1000), '%Y%m%d')
@@ -125,8 +125,8 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
                     table_name="posts", attrs=posts_keys, values=xml_posts_values)
             MatterSqlClient.sql_post(
                 table_name="fileinfo", attrs=fileinfo_keys, values=type_xml_fileinfo_values)
-    # except:
-    #     pass
+    except Exception as e:
+        save_logs()
 
 def get_timestamp() -> int:
         return int(time.time() * 1000)

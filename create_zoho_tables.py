@@ -182,6 +182,18 @@ class CreateZohoTables:
         mycursor.execute(query)
         ZohoSqlClient.zohomydb.commit()
         print(Fore.GREEN + "## Cliq Channel Members table created ##")
+    
+    def cliq_logs(self):
+        mycursor = ZohoSqlClient.zohomydb.cursor()
+
+        query = '''
+            CREATE TABLE if not exists logs (
+                data text, timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        '''
+        mycursor.execute(query)
+        ZohoSqlClient.zohomydb.commit()
+        print(Fore.GREEN + "## Cliq Log table created ##")
 
     def main(self):
         self.portals()
@@ -194,6 +206,7 @@ class CreateZohoTables:
         self.cliq_chats()
         self.cliq_messages()
         self.cliq_channel_members()
+        self.cliq_logs()
 
 
 if __name__ == '__main__':
