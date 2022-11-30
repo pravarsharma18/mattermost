@@ -88,7 +88,7 @@ class CreateZohoTables:
         mycursor = ZohoSqlClient.zohomydb.cursor()
         query = '''
             CREATE TABLE if not exists tasks (
-                start_date_long varchar(255), is_comment_added varchar(255), end_date_format varchar(255), 
+                project_name varchar(255), start_date_long varchar(255), is_comment_added varchar(255), end_date_format varchar(255), 
                 added_via varchar(255), last_updated_time_long varchar(255), is_forum_associated varchar(255), 
                 details text, id varchar(255), created_time varchar(255), work text,
                 start_date_format varchar(255), isparent varchar(255), completed_time_long varchar(255), 
@@ -103,7 +103,7 @@ class CreateZohoTables:
                 is_reminder_set varchar(255),is_recurrence_set varchar(255), created_time_format varchar(255), 
                 subtasks varchar(255), duration_type varchar(255), percent_complete varchar(255), 
                 "GROUP_NAME" text, completed_time varchar(255), id_string varchar(255), 
-                log_hours text, key varchar(255), project_name varchar(255)
+                log_hours text, key varchar(255)
             );
         '''
         mycursor.execute(query)
@@ -162,8 +162,8 @@ class CreateZohoTables:
 
         query = '''
             CREATE TABLE if not exists cliq_messages (
-                ack_key varchar(255), content text, id varchar(255), is_read boolean, revision int, 
-                sender text, time varchar(255), type varchar(255), chat_id varchar(255)
+                chat_id varchar(255), ack_key varchar(255), content text, id varchar(255), is_read boolean, revision int, 
+                sender text, time varchar(255), type varchar(255)
             );
         '''
         mycursor.execute(query)
@@ -175,8 +175,7 @@ class CreateZohoTables:
 
         query = '''
             CREATE TABLE if not exists cliq_channel_members (
-                user_id varchar(255),email varchar(255), name varchar(255), user_role varchar(255), 
-                channel_id varchar(255)
+                channel_id varchar(255), user_id varchar(255),email varchar(255), name varchar(255), user_role varchar(255)
             );
         '''
         mycursor.execute(query)

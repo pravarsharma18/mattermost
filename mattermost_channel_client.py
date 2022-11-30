@@ -130,12 +130,12 @@ class MattermostClient:
                 "cliq_channels", "name, channel_id")
             for zoho_channel in zoho_channels:
                 users = ZohoSqlClient.sql_get(
-                    'cliq_channel_members', 'email,user_role', f"channel_id='{zoho_channel['channel_id']}'")  # only channel members
+                    'cliq_channel_members', 'email_id,user_role', f"channel_id='{zoho_channel['channel_id']}'")  # only channel members
                 channel = MatterSqlClient.sql_get(
                     'channels', "id", f"displayname='{zoho_channel['name']}'")  # getting the mattermost channels id. this is to prevent duplicate values
                 for user in users:
                     user_id = MatterSqlClient.sql_get(
-                        'users', 'id', f"email='{user['email']}'")
+                        'users', 'id', f"email='{user['email_id']}'")
                     channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel[0]['id']}' and userid='{user_id[0]['id']}'")
                     if "super_admin" in user['user_role']:
                         schemeadmin = json.dumps(True)

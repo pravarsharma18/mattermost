@@ -169,19 +169,20 @@ class ZohoClient:
                         create_new_column(keys, columns, "project_users")
 
                         # Alter table columns as per field from api.
-                        columns = ZohoSqlClient.get_columns("project_users")
+                        
                         values = user.values()
                         user_list = [i for i in values]
                         li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                             user_list)]
                         li.insert(0, project_id['name'])
+                        keys.insert(0,"project_name")
                         if project_users:
                             if project_users[0]['email'] != user['email'] and project_users[0]['project_name'] != project_id['name']:
                                 ZohoSqlClient.sql_post(
-                                    table_name="project_users", attrs=columns, values=li)
+                                    table_name="project_users", attrs=keys, values=li)
                         else:
                             ZohoSqlClient.sql_post(
-                                        table_name="project_users", attrs=columns, values=li)
+                                        table_name="project_users", attrs=keys, values=li)
             print(Fore.GREEN + "## Project Users saved in db ##")
         except Exception as e:
             save_logs()
@@ -206,11 +207,13 @@ class ZohoClient:
 
                         # Alter table columns as per field from api.
                         create_new_column(keys, columns, "tasks")
+                        columns = ZohoSqlClient.get_columns("tasks")
 
                         values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                             values)]
-                        values.append(project_id['name'])
-                        keys.append('project_name')
+                        values.insert(0, project_id['name'])
+                        keys.insert(0, 'project_name')
+                        
                         if tasks_id:
                             if tasks_id[0]['id'] != str(task['id']) and tasks_id[0]['project_name'] != project_id['name']:
                                 ZohoSqlClient.sql_post(
