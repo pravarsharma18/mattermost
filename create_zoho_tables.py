@@ -139,9 +139,8 @@ class CreateZohoTables:
 
         query = '''
             CREATE TABLE if not exists cliq_chats (
-                title varchar(255),chat_id varchar(255),participant_count int,total_message_count int,
-                creator_id varchar(255),creation_time varchar(255),last_modified_time varchar(255),
-                recipients_summary text
+                recipients_summary text, title varchar(255),chat_id varchar(255),participant_count int,total_message_count int,
+                creator_id varchar(255),creation_time varchar(255),last_modified_time varchar(255)
             );
         '''
         # query = '''

@@ -32,7 +32,6 @@ class ZohoClient:
 
     def get_all_users(self):
         try:
-            keys = ZohoSqlClient.get_columns("cliq_users")
             s, data = self.get_chat_api('api/v2/users')
             users = []
             users.extend(data['data'])
@@ -51,6 +50,10 @@ class ZohoClient:
                 lambda x: remove_punctions(x))
             users = df.to_dict('records')
             for user in users:
+                keys = list(user.keys())
+                columns = ZohoSqlClient.get_columns("cliq_users")
+                # Alter table columns as per field from api.
+                create_new_column(keys, columns, "cliq_users")
                 db_users = ZohoSqlClient.sql_get("cliq_users", "email_id", f"email_id='{user['email_id']}'")
                 values = user.values()
                 li = [i for i in values]
@@ -72,7 +75,6 @@ class ZohoClient:
                 db_channels = [channel['channel_id'] for channel in db_channels]
             except:
                 db_channels = None
-            keys = ZohoSqlClient.get_columns("cliq_channels")
             s, data = self.get_chat_api(
                 'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id', header={"Content-Type": 'text/csv'})
             # print(s)
@@ -82,6 +84,11 @@ class ZohoClient:
             df = pd.DataFrame(pd.read_csv("channels.csv"))
             channels = df.to_dict("records")
             for channel in channels:
+                keys = list(channel.keys())
+                columns = ZohoSqlClient.get_columns("cliq_channels")
+                # Alter table columns as per field from api.
+                create_new_column(keys, columns, "cliq_channels")
+
                 db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
                 row = list(channel.values())
                 if db_channels:
@@ -131,7 +138,6 @@ class ZohoClient:
 
     def bulk_conversation(self):
         try:
-            keys = ZohoSqlClient.get_columns("cliq_chats")
             s, data = self.get_chat_api(
                 'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time', header={"Content-Type": 'text/csv'})
             # s, data = self.get_chat_api(
@@ -149,13 +155,18 @@ class ZohoClient:
             df['last_modified_time'] = df['last_modified_time'].astype('int')
             chats = df.to_dict('records')
             for chat in chats:
+                keys = list(chat.keys())
+                columns = ZohoSqlClient.get_columns("cliq_chats")
+                # Alter table columns as per field from api.
+                create_new_column(keys, columns, "cliq_chats")
                 db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
                 s, chat_members = self.get_chat_api(
                     f'maintenanceapi/v2/chats/{chat["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
                 v = [i for i in chat.values()]
                 values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                     v)]
-                values.append(json.dumps(chat_members.split()[1:]))
+                values.insert(0, json.dumps(chat_members.split()[1:]))
+                keys.insert(0, "recipients_summary")
                 if db_cliq_chats:
                     if db_cliq_chats[0]['chat_id'] != chat['chat_id']:
                         ZohoSqlClient.sql_post(

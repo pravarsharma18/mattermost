@@ -73,7 +73,7 @@ class ZohoClient:
             for portal_id in portal_ids:
                 status_code, projects = self.get_project_api(
                     f"restapi/portal/{portal_id['id']}/projects/")
-                if not status_code in range(200, 299):
+                if status_code != 200:
                     return projects
                 # pprint(projects['projects'])
                 for project in projects['projects']:
@@ -132,10 +132,10 @@ class ZohoClient:
                         if portal_users_id:
                             if portal_users_id[0]['email'] != user['email']:
                                 ZohoSqlClient.sql_post(
-                                    table_name="portal_users", attrs=user.keys(), values=li)
+                                    table_name="portal_users", attrs=keys, values=li)
                         else:
                             ZohoSqlClient.sql_post(
-                                    table_name="portal_users", attrs=user.keys(), values=li)
+                                    table_name="portal_users", attrs=keys, values=li)
             print(Fore.GREEN + "## Portal Users saved in db ##")
         except Exception as e:
             save_logs()
@@ -154,7 +154,7 @@ class ZohoClient:
                     status_code, users = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
                     count +=1
-                    if not status_code in range(200, 299):
+                    if status_code !=200:
                         return users
                     # to remove spaces and add '.' as mattermost username doesnot support spaces for username
                     df = pd.DataFrame(users['users'])
