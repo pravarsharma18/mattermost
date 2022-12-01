@@ -46,16 +46,17 @@ class MattermostClient:
                 for channel in channels:
                     chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel['name'][1:]}%'" )
                     
-                    channels = MatterSqlClient.sql_get("channels", "teamid,name", f"teamid='{team['id']}' and name='{channel['name'].split('#')[1]}'")
+                    channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
                     creator_id = MatterSqlClient.sql_get(
                         "users", "id", f"email='{channel['creator_id']}'")
-                    values = [self.generate_id(26), channel['creation_time'], channel['creation_time'], 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", channel['creation_time'], channel['total_message_count'], 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
-                    if channels:
-                        if channels[0]['teamid'] != team['id'] and channels[0]['name'] != channel['name'].split('#')[1]:
+                    if chat_id:
+                        values = [self.generate_id(26), channel.get('creation_time'), channel.get('creation_time'), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", channel.get('creation_time'), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
+                        if channels:
+                            if channels[0]['teamid'] != team['id'] and channels[0]['displayname'] != channel['name']:
+                                MatterSqlClient.sql_post(
+                                    table_name='channels', attrs=keys, values=values)
+                        else:
                             MatterSqlClient.sql_post(
-                                table_name='channels', attrs=keys, values=values)
-                    else:
-                        MatterSqlClient.sql_post(
                                 table_name='channels', attrs=keys, values=values)
             print(Fore.GREEN + "Channel Inserted")
         except Exception as e:

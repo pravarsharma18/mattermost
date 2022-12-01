@@ -78,53 +78,38 @@ class ZohoClient:
             except:
                 db_channels = None
             a = True
-            next_token=""
             while a:
-                if next_token:
-                    url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id&next_token={next_token}'
+                token = ""
+                if not token:
+                    url = 'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id'
                 else:
-                    url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id'
-                s, data = self.get_chat_api(
-                    url, header={"Content-Type": 'text/csv'})
+                    url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id?next_token={token}'
+                s, channels = self.get_chat_api(url)
                 
-                with open("channels.csv", 'w') as file:
-                    file.writelines(data)
-                        
-                df = pd.DataFrame(pd.read_csv("channels.csv"))
-                df['channel_id'] = df['channel_id'].fillna(0)
-                df = df.fillna("")
-                df = df.where(df['channel_id'] != 0)
-                df = df.dropna(how='all')
-
-                channels = df.to_dict("records")
                 # print(channels)
-                for channel in channels:
-                    keys = list(channel.keys())
-                    columns = ZohoSqlClient.get_columns("cliq_channels")
-                    # Alter table columns as per field from api.
-                    create_new_column(keys, columns, "cliq_channels")
+                if channels.get('channels'):
+                    for channel in channels.get('channels'):
+                        keys = list(channel.keys())
+                        columns = ZohoSqlClient.get_columns("cliq_channels")
+                        # Alter table columns as per field from api.
+                        create_new_column(keys, columns, "cliq_channels")
 
-                    db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
-                    row = list(channel.values())
-                    values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                    row)]
-                    if db_channels:
-                        if db_channels[0]['channel_id'] != channel['channel_id']:
+                        db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
+                        row = list(channel.values())
+                        values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                        row)]
+                        if db_channels:
+                            if db_channels[0]['channel_id'] != channel['channel_id']:
+                                ZohoSqlClient.sql_post(
+                                    table_name="cliq_channels", attrs=keys, values=values)
+                        else:
                             ZohoSqlClient.sql_post(
                                 table_name="cliq_channels", attrs=keys, values=values)
-                    else:
-                        ZohoSqlClient.sql_post(
-                            table_name="cliq_channels", attrs=keys, values=values)
-
-                with open("channels.csv", 'r') as file:
-                    tokn = file.readlines()[-1]
-                    if self.token_field in tokn:
-                        next_token = tokn.split("=")[1]                      
-                    else:
-                        print("channel inelse")
-                        a = False
-                        break
-
+                if channels.get('has_more'):
+                    token = channels.get("next_token")
+                else:
+                    a = False
+                    break
             print(Fore.GREEN + "Channels Inserted")
         except Exception as e:
             save_logs(e)
@@ -137,27 +122,28 @@ class ZohoClient:
                 s, data = self.get_chat_api(
                     f"api/v2/channels/{channel['channel_id']}/members")
         
-                members = data['members']
-                for member in members:
-                    db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email,channel_id", f"email='{member['email_id']}' and channel_id='{channel['channel_id']}'")
-                    values = list(member.values())
+                members = data.get('members')
+                if members:
+                    for member in members:
+                        db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email,channel_id", f"email='{member['email_id']}' and channel_id='{channel['channel_id']}'")
+                        values = list(member.values())
 
-                    keys = list(member.keys())
-                    columns = ZohoSqlClient.get_columns("cliq_channel_members")
-                    # Alter table columns as per field from api.
-                    create_new_column(keys, columns, "cliq_channel_members")
-                    
-                    li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                            values)]
-                    li.insert(0,channel['channel_id'])
-                    keys.insert(0, "channel_id")
-                    if db_channel_members:
-                        if db_channel_members[0]['email'] != member['email_id'] and db_channel_members[0]['channel_id'] != channel['channel_id']:
+                        keys = list(member.keys())
+                        columns = ZohoSqlClient.get_columns("cliq_channel_members")
+                        # Alter table columns as per field from api.
+                        create_new_column(keys, columns, "cliq_channel_members")
+                        
+                        li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                values)]
+                        li.insert(0,channel['channel_id'])
+                        keys.insert(0, "channel_id")
+                        if db_channel_members:
+                            if db_channel_members[0]['email'] != member['email_id'] and db_channel_members[0]['channel_id'] != channel['channel_id']:
+                                ZohoSqlClient.sql_post(
+                                    table_name='cliq_channel_members', attrs=keys, values=li)
+                        else:
                             ZohoSqlClient.sql_post(
-                                table_name='cliq_channel_members', attrs=keys, values=li)
-                    else:
-                        ZohoSqlClient.sql_post(
-                                table_name='cliq_channel_members', attrs=keys, values=li)
+                                    table_name='cliq_channel_members', attrs=keys, values=li)
             print(Fore.GREEN + "Channel Members Saved")
         except Exception as e:
             save_logs(e)
