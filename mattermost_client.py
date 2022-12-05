@@ -271,21 +271,23 @@ class MattermostClient:
                 person_id = card_propety_id(
                 board['card_properties'], "Assignee")
                 for task in tasks:
-                    user_id = MatterSqlClient.sql_get(
-                        'users', 'id', f"username like '%{task['created_person']}%'")
-                    focalboardblocks = MatterSqlClient.sql_get("focalboard_blocks", "board_id", f"board_id='{board['id']}'")
-                    if board['title'] == task['project_name']:
-                        values = [self.generate_id(
-                            27), datetime.now(), self.generate_id(27), 1, "view", f"By Status", json.dumps({"visiblePropertyIds": [person_id]}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
+                    user_id = MatterSqlClient.sql_get('users', 'id', f"username like '%{remove_punctions(task['created_person'])}%'")
+                    if user_id:
+                        focalboardblocks = MatterSqlClient.sql_get("focalboard_blocks", "board_id", f"board_id='{board['id']}'")
+                        if board['title'] == task['project_name']:
+                            values = [self.generate_id(
+                                27), datetime.now(), self.generate_id(27), 1, "view", f"By Status", json.dumps({"visiblePropertyIds": [person_id]}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
 
-                        if focalboardblocks:
-                            if focalboardblocks[0].get("board_id") != board['id']:
+                            if focalboardblocks:
+                                if focalboardblocks[0].get("board_id") != board['id']:
+                                    MatterSqlClient.sql_post(
+                                        table_name="focalboard_blocks", attrs=keys, values=values)
+                            else:
                                 MatterSqlClient.sql_post(
                                     table_name="focalboard_blocks", attrs=keys, values=values)
-                        else:
-                            MatterSqlClient.sql_post(
-                                table_name="focalboard_blocks", attrs=keys, values=values)
-                        break
+                            break
+                    else:
+                        print(f"{remove_punctions(task['created_person'])} user Not Found")
             print(Fore.GREEN + "## Inserted Focal Blocks Views ##")
         except Exception as e:
             save_logs(e)
@@ -313,52 +315,55 @@ class MattermostClient:
                         assignee_ids = []
                     user_id = MatterSqlClient.sql_get(
                         'users', 'id', f"username like '%{remove_punctions(task['created_person'])}%'")
-                    if board['title'] == task['project_name']:
-                        type_ = json.loads(task['status'])['name']
-                        type_id = card_propeties_values_id(
-                            board['card_properties'], "Select", type_)
-                        task_description = BeautifulSoup(
-                            task['description'], "html.parser").get_text()
-                        description_id = ""
-                        if task_description:
-                            focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{task_description}'")
-                            description_values = [self.generate_id(
-                                27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
-                            if focalboardblocks_text:
-                                if focalboardblocks_text[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "text" and focalboardblocks_text[0]['title'] != task_description:
+                    if user_id:
+                        if board['title'] == task['project_name']:
+                            type_ = json.loads(task['status'])['name']
+                            type_id = card_propeties_values_id(
+                                board['card_properties'], "Select", type_)
+                            task_description = BeautifulSoup(
+                                task['description'], "html.parser").get_text()
+                            description_id = ""
+                            if task_description:
+                                focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{task_description}'")
+                                description_values = [self.generate_id(
+                                    27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
+                                if focalboardblocks_text:
+                                    if focalboardblocks_text[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "text" and focalboardblocks_text[0]['title'] != task_description:
+                                        description_id = MatterSqlClient.sql_post(
+                                            table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
+                                else:
                                     description_id = MatterSqlClient.sql_post(
-                                        table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
-                            else:
-                                description_id = MatterSqlClient.sql_post(
-                                        table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
-                        fields = {
-                            "contentOrder": [description_id],
-                            "isTemplate": False,
-                            "properties": {
-                                select_id: type_id[0]['id'],  # status
-                                person_id: user_id[0]['id'],
-                                assign_id: assignee_ids,
+                                            table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
+                            fields = {
+                                "contentOrder": [description_id],
+                                "isTemplate": False,
+                                "properties": {
+                                    select_id: type_id[0]['id'],  # status
+                                    person_id: user_id[0]['id'],
+                                    assign_id: assignee_ids,
+                                }
                             }
-                        }
-                        focalboardblocks_card = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='card' and title='{task['name']}'")
-                        values = [self.generate_id(
-                            27), datetime.now(), self.generate_id(27), 1, "card", f"{task['name']}", json.dumps(fields), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
-                        if focalboardblocks_card:
-                            if focalboardblocks_card[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "card" and focalboardblocks_text[0]['title'] != task['name']:
+                            focalboardblocks_card = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='card' and title='{task['name']}'")
+                            values = [self.generate_id(
+                                27), datetime.now(), self.generate_id(27), 1, "card", f"{task['name']}", json.dumps(fields), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
+                            if focalboardblocks_card:
+                                if focalboardblocks_card[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "card" and focalboardblocks_text[0]['title'] != task['name']:
+                                    card_id = MatterSqlClient.sql_post(
+                                        table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
+                            else:
                                 card_id = MatterSqlClient.sql_post(
-                                    table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
-                        else:
-                            card_id = MatterSqlClient.sql_post(
-                                    table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
-                        if description_id:
-                            '''
-                            update the parent id of text component
-                            '''
-                            try:
-                                MatterSqlClient.sql_update(
-                                    table_name="focalboard_blocks", set=f"parent_id='{card_id}'", where=f"id='{description_id}'")
-                            except:
-                                pass
+                                        table_name="focalboard_blocks", attrs=keys, values=values, returning="id")
+                            if description_id:
+                                '''
+                                update the parent id of text component
+                                '''
+                                try:
+                                    MatterSqlClient.sql_update(
+                                        table_name="focalboard_blocks", set=f"parent_id='{card_id}'", where=f"id='{description_id}'")
+                                except:
+                                    pass
+                    else:
+                        print(f"{remove_punctions(task['created_person'])} user Not Found")
             print(Fore.GREEN + "## Inserted Focal Blocks Cards ##")
         except Exception as e:
             save_logs(e)
