@@ -320,6 +320,10 @@ class MattermostClient:
                             type_ = json.loads(task['status'])['name']
                             type_id = card_propeties_values_id(
                                 board['card_properties'], "Select", type_)
+                            if type_id:
+                                select_type = type_id[0]['id']
+                            else:
+                                select_type = ""
                             task_description = BeautifulSoup(
                                 task['description'], "html.parser").get_text()
                             description_id = ""
@@ -338,7 +342,7 @@ class MattermostClient:
                                 "contentOrder": [description_id],
                                 "isTemplate": False,
                                 "properties": {
-                                    select_id: type_id[0]['id'],  # status
+                                    select_id: select_type,  # status
                                     person_id: user_id[0]['id'],
                                     assign_id: assignee_ids,
                                 }
