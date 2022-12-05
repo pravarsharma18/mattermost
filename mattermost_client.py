@@ -326,8 +326,9 @@ class MattermostClient:
                                 select_type = type_id[0]['id']
                             else:
                                 select_type = ""
-                            task_description = BeautifulSoup(
-                                task['description'], "html.parser").get_text()
+                            if task['description']:
+                                task_description = BeautifulSoup(
+                                    task['description'], "html.parser").get_text()
                             description_id = ""
                             if task_description:
                                 focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{replace_escape_characters(task_description)}'")

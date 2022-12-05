@@ -238,8 +238,9 @@ class ZohoClient:
                         else:
                             ZohoSqlClient.sql_post(
                                     table_name='cliq_messages', attrs=keys, values=data_values)
-                except:
-                    pass
+                    print(f"Saved chats for chat_id: {chat_id}")
+                except Exception as e:
+                    print("Exception while saving chat data: ", e)
             print(Fore.GREEN + "Messages Inserted")
         except Exception as e:
             save_logs(e)
