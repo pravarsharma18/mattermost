@@ -9,8 +9,7 @@ from sql import ZohoSqlClient, MatterSqlClient
 from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
-from .utils import remove_punctions
-from utils import card_propeties_values_id, card_propety_id, get_owners_id_by_email, save_logs
+from utils import card_propeties_values_id, card_propety_id, get_owners_id_by_email, save_logs,remove_punctions
 
 
 class MattermostClient:
@@ -307,9 +306,11 @@ class MattermostClient:
                 assign_id = card_propety_id(
                     board['card_properties'], "Assignee")
                 for task in tasks:
-                    assignees = list(owner['email']
-                                    for owner in json.loads(task['details'])['owners'])
-                    assignee_ids = get_owners_id_by_email(assignees)
+                    try:
+                        assignees = list(owner['email'] for owner in json.loads(task['details'])['owners'])
+                        assignee_ids = get_owners_id_by_email(assignees)
+                    except:
+                        assignee_ids = []
                     user_id = MatterSqlClient.sql_get(
                         'users', 'id', f"username like '%{task['created_person']}%'")
                     if board['title'] == task['project_name']:
