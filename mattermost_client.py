@@ -312,7 +312,7 @@ class MattermostClient:
                     except:
                         assignee_ids = []
                     user_id = MatterSqlClient.sql_get(
-                        'users', 'id', f"username like '%{task['created_person']}%'")
+                        'users', 'id', f"username like '%{remove_punctions(task['created_person'])}%'")
                     if board['title'] == task['project_name']:
                         type_ = json.loads(task['status'])['name']
                         type_id = card_propeties_values_id(
