@@ -111,13 +111,20 @@ class ZohoClient:
                     # print(status_code)
                     if status_code == 204:
                         break
-
+                    def remove_duplicates(x):
+                        x[0]= x[1]
+                        return x
+                    
                     # to remove spaces and add '.' as mattermost username doesnot support spaces for username
                     df = pd.DataFrame(users['users'])
                     df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+                    df_duplicated = df[df['name'].duplicated()]
+                    df = df.drop_duplicates(subset=['name'])
+
+                    df_duplicated[['name','email']] = df_duplicated[['name','email']].apply(remove_duplicates, axis=1)
+                    df = pd.concat([df, df_duplicated], axis=0)
                     df['active'] = df['active'].fillna(False)
                     users = df.to_dict('records')
-
                     for user in users:
                         portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
                         keys = list(user.keys())
