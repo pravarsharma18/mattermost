@@ -68,3 +68,8 @@ def save_logs(e):
     print(e)
     ZohoSqlClient.sql_post(
                 table_name="logs", attrs=['data'], values=[var])
+
+
+def replace_escape_characters(value):
+    return value.replace("'", "''")
+    

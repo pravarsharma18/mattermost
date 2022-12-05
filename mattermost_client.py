@@ -9,7 +9,9 @@ from sql import ZohoSqlClient, MatterSqlClient
 from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
-from utils import card_propeties_values_id, card_propety_id, get_owners_id_by_email, save_logs,remove_punctions
+from utils import ( card_propeties_values_id, card_propety_id, get_owners_id_by_email, 
+                    save_logs,remove_punctions, replace_escape_characters 
+                    ) 
 
 
 class MattermostClient:
@@ -328,8 +330,7 @@ class MattermostClient:
                                 task['description'], "html.parser").get_text()
                             description_id = ""
                             if task_description:
-                                escaped_description = task_description.replace("'", "''")
-                                focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{escaped_description}'")
+                                focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{replace_escape_characters(task_description)}'")
                                 description_values = [self.generate_id(
                                     27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
                                 if focalboardblocks_text:
@@ -348,7 +349,7 @@ class MattermostClient:
                                     assign_id: assignee_ids,
                                 }
                             }
-                            focalboardblocks_card = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='card' and title='{task['name']}'")
+                            focalboardblocks_card = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='card' and title='{replace_escape_characters(task['name'])}'")
                             values = [self.generate_id(
                                 27), datetime.now(), self.generate_id(27), 1, "card", f"{task['name']}", json.dumps(fields), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
                             if focalboardblocks_card:
