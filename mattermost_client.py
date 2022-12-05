@@ -9,6 +9,7 @@ from sql import ZohoSqlClient, MatterSqlClient
 from models import CardProperties
 from bs4 import BeautifulSoup
 from colorama import Fore
+from .utils import remove_punctions
 from utils import card_propeties_values_id, card_propety_id, get_owners_id_by_email, save_logs
 
 
@@ -208,19 +209,19 @@ class MattermostClient:
             for team in teams:
                 for project in projects:
                     user_id = MatterSqlClient.sql_get(
-                        'users', 'id', f"username like '%{project['created_by']}%' or email like '%{project['created_by']}%'")
-                    if user_id:
-                        values = [self.generate_id(26), datetime.now(), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(project['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project['created_date']), self.get_timestamp_from_date(project['updated_date']), 0, ""]
+                        'users', 'id', f"username like '%{remove_punctions(project['created_by'])}%'")
+                    
+                    values = [self.generate_id(26), datetime.now(), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(project['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project['created_date']), self.get_timestamp_from_date(project['updated_date']), 0, ""]
 
-                        focalboard = MatterSqlClient.sql_get("focalboard_boards", "team_id,title", f"team_id='{team['id']}' and title='{project['name']}'")
+                    focalboard = MatterSqlClient.sql_get("focalboard_boards", "team_id,title", f"team_id='{team['id']}' and title='{project['name']}'")
 
-                        if focalboard:
-                            if focalboard[0].get("team_id") != team['id'] and focalboard[0].get("title") != project['name']:
-                                MatterSqlClient.sql_post(
-                                    table_name="focalboard_boards", attrs=keys, values=values)
-                        else:
+                    if focalboard:
+                        if focalboard[0].get("team_id") != team['id'] and focalboard[0].get("title") != project['name']:
                             MatterSqlClient.sql_post(
-                                    table_name="focalboard_boards", attrs=keys, values=values)
+                                table_name="focalboard_boards", attrs=keys, values=values)
+                    else:
+                        MatterSqlClient.sql_post(
+                                table_name="focalboard_boards", attrs=keys, values=values)
             print(Fore.GREEN + "## Inserted focalboard data ##")
         except Exception as e:
             save_logs(e)
