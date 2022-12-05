@@ -56,6 +56,8 @@ def create_new_column(old_columns, columns, table_name):
 
 
 def remove_punctions(value):
+    if type(value) != str:
+        return value
     punctuations = '!"#$%&\'()*+,-/:;<=>?@[\\]^_`{|}~'
     return '.'.join("".join([i for i in value if i not in punctuations]).split()).lower()
 
