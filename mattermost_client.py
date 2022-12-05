@@ -328,7 +328,8 @@ class MattermostClient:
                                 task['description'], "html.parser").get_text()
                             description_id = ""
                             if task_description:
-                                focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{task_description}'")
+                                escaped_description = task_description.replace("'", "''")
+                                focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{escaped_description}'")
                                 description_values = [self.generate_id(
                                     27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
                                 if focalboardblocks_text:
