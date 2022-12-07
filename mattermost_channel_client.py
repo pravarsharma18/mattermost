@@ -93,8 +93,8 @@ class MattermostClient:
                     creator_id = MatterSqlClient.sql_get(
                         "users", "id", f"email='{chat['creator_id']}'")
                     if creator_id:
-                        channel_values = [self.generate_id(26), int(float(chat['creation_time'])), chat['last_modified_time'], 0, "",
-                                        "D", "", rec_ids_str, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, int(float(chat['last_modified_time'])), chat['chat_id']]
+                        channel_values = [self.generate_id(26), int(float(chat['creation_time'])), int(float(chat['last_modified_time'])), 0, "",
+                                        "D", "", rec_ids_str, "", "", int(float(chat['last_modified_time'])), 0, 0, creator_id[0]['id'], json.dumps(False), 0, int(float(chat['last_modified_time'])), chat['chat_id']]
                         channel_values_reverse = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
                                         "D", "", rec_ids_str_reverse, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
 
