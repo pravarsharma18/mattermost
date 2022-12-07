@@ -59,7 +59,7 @@ class MattermostClient:
                                 MatterSqlClient.sql_post(
                                     table_name='channels', attrs=keys, values=values)
                         else:
-                            print(f"channel['creator_id'] {channel['creator_id']} not found in cliq_chats")
+                            print(f"channel['creator_id'] {channel['creator_id']} not found in mattermost db users")
                     else:
                         print(f"channel['name'] {channel['name'][1:]} not found in cliq_chats")
             print(Fore.GREEN + "Channel Inserted")
