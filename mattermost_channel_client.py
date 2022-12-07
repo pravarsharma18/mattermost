@@ -45,19 +45,21 @@ class MattermostClient:
             for team in teams:
                 for channel in channels:
                     chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel['name'][1:]}%'" )
-                    
-                    channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
-                    creator_id = MatterSqlClient.sql_get(
-                        "users", "id", f"email='{channel['creator_id']}'")
                     if chat_id:
-                        values = [self.generate_id(26), channel.get('creation_time'), channel.get('creation_time'), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", channel.get('creation_time'), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
-                        if channels:
-                            if channels[0]['teamid'] != team['id'] and channels[0]['displayname'] != channel['name']:
+                        channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
+                        creator_id = MatterSqlClient.sql_get(
+                            "users", "id", f"email='{channel['creator_id']}'")
+                        if chat_id:
+                            values = [self.generate_id(26), channel.get('creation_time'), channel.get('creation_time'), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", channel.get('creation_time'), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
+                            if channels:
+                                if channels[0]['teamid'] != team['id'] and channels[0]['displayname'] != channel['name']:
+                                    MatterSqlClient.sql_post(
+                                        table_name='channels', attrs=keys, values=values)
+                            else:
                                 MatterSqlClient.sql_post(
                                     table_name='channels', attrs=keys, values=values)
-                        else:
-                            MatterSqlClient.sql_post(
-                                table_name='channels', attrs=keys, values=values)
+                    else:
+                        print(f"{channel['name'][1:]} not found in cliq_chats")
             print(Fore.GREEN + "Channel Inserted")
         except Exception as e:
             save_logs(e)
@@ -77,7 +79,10 @@ class MattermostClient:
                 for recipient_summary in recipient_summaries:
                     user_id = MatterSqlClient.sql_get(
                         'users', 'id', f"email='{recipient_summary}'")
-                    rec_ids.append(user_id[0]['id'])
+                    if user_id:
+                        rec_ids.append(user_id[0]['id'])
+                    else:
+                        print(f"{recipient_summary} is not found in users db mattermost")
                 if len(rec_ids) == 2:
                     rec_ids = rec_ids
                     rec_ids_reverse = rec_ids[::-1]
@@ -134,24 +139,27 @@ class MattermostClient:
                     'cliq_channel_members', 'email_id,user_role', f"channel_id='{zoho_channel['channel_id']}'")  # only channel members
                 channel = MatterSqlClient.sql_get(
                     'channels', "id", f"displayname='{zoho_channel['name']}'")  # getting the mattermost channels id. this is to prevent duplicate values
-                for user in users:
-                    user_id = MatterSqlClient.sql_get(
-                        'users', 'id', f"email='{user['email_id']}'")
-                    channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel[0]['id']}' and userid='{user_id[0]['id']}'")
-                    if "super_admin" in user['user_role']:
-                        schemeadmin = json.dumps(True)
-                    else:
-                        schemeadmin = json.dumps(False)
-                    values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
-                        notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+                if channel:
+                    for user in users:
+                        user_id = MatterSqlClient.sql_get(
+                            'users', 'id', f"email='{user['email_id']}'")
+                        channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel[0]['id']}' and userid='{user_id[0]['id']}'")
+                        if "super_admin" in user['user_role']:
+                            schemeadmin = json.dumps(True)
+                        else:
+                            schemeadmin = json.dumps(False)
+                        values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
+                            notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
 
-                    if channel_members:
-                        if channel_members[0].get("channelid") != channel[0]['id'] and channel_members[0].get("userid") != user_id[0]['id']:
+                        if channel_members:
+                            if channel_members[0].get("channelid") != channel[0]['id'] and channel_members[0].get("userid") != user_id[0]['id']:
+                                MatterSqlClient.sql_post(
+                                    table_name="channelmembers", attrs=keys, values=values)
+                        else:
                             MatterSqlClient.sql_post(
-                                table_name="channelmembers", attrs=keys, values=values)
-                    else:
-                        MatterSqlClient.sql_post(
-                                table_name="channelmembers", attrs=keys, values=values)
+                                    table_name="channelmembers", attrs=keys, values=values)
+                else:
+                    print(f"{zoho_channel['name']} is not found in channels db mattermost")
             print(Fore.GREEN + "Channle Members Inserted")
         except Exception as e:
             save_logs(e)
