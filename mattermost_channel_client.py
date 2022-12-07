@@ -49,7 +49,7 @@ class MattermostClient:
                         channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
                         creator_id = MatterSqlClient.sql_get(
                             "users", "id", f"email='{channel['creator_id']}'")
-                        if chat_id:
+                        if creator_id:
                             values = [self.generate_id(26), channel.get('creation_time'), channel.get('creation_time'), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", channel.get('creation_time'), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
                             if channels:
                                 if channels[0]['teamid'] != team['id'] and channels[0]['displayname'] != channel['name']:
@@ -58,8 +58,10 @@ class MattermostClient:
                             else:
                                 MatterSqlClient.sql_post(
                                     table_name='channels', attrs=keys, values=values)
+                        else:
+                            print(f"channel['creator_id'] {channel['creator_id']} not found in cliq_chats")
                     else:
-                        print(f"{channel['name'][1:]} not found in cliq_chats")
+                        print(f"channel['name'] {channel['name'][1:]} not found in cliq_chats")
             print(Fore.GREEN + "Channel Inserted")
         except Exception as e:
             save_logs(e)
