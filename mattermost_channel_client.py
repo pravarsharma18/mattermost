@@ -92,31 +92,34 @@ class MattermostClient:
                     rec_ids_str_reverse = "__".join(rec_ids_reverse)
                     creator_id = MatterSqlClient.sql_get(
                         "users", "id", f"email='{chat['creator_id']}'")
-                    channel_values = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
-                                    "D", "", rec_ids_str, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
-                    channel_values_reverse = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
-                                    "D", "", rec_ids_str_reverse, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
+                    if creator_id:
+                        channel_values = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
+                                        "D", "", rec_ids_str, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
+                        channel_values_reverse = [self.generate_id(26), chat['creation_time'], chat['last_modified_time'], 0, "",
+                                        "D", "", rec_ids_str_reverse, "", "", chat['last_modified_time'], 0, 0, creator_id[0]['id'], json.dumps(False), 0, chat['last_modified_time'], chat['chat_id']]
 
-                    channels_db = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str}'")
-                    channel_id = ""
-                    if channels_db:
-                        if channels_db[0]['name'] != rec_ids_str:
+                        channels_db = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str}'")
+                        channel_id = ""
+                        if channels_db:
+                            if channels_db[0]['name'] != rec_ids_str:
+                                channel_id = MatterSqlClient.sql_post(
+                                    table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
+                        else:
                             channel_id = MatterSqlClient.sql_post(
-                                table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
-                    else:
-                        channel_id = MatterSqlClient.sql_post(
-                                table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
-                    # channels_db_reverse = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str_reverse}' and chat_id='{chat['chat_id']}'")
-                    # if channels_db_reverse:
-                    #     if channels_db_reverse[0]['name'] != rec_ids_str and channels_db_reverse[0]['chat_id'] != chat['chat_id']:
-                    #         channel_id_reverse = MatterSqlClient.sql_post(
-                    #             table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
-                    # else:
-                    #     channel_id_reverse = MatterSqlClient.sql_post(
-                    #             table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
+                                    table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
+                        # channels_db_reverse = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str_reverse}' and chat_id='{chat['chat_id']}'")
+                        # if channels_db_reverse:
+                        #     if channels_db_reverse[0]['name'] != rec_ids_str and channels_db_reverse[0]['chat_id'] != chat['chat_id']:
+                        #         channel_id_reverse = MatterSqlClient.sql_post(
+                        #             table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
+                        # else:
+                        #     channel_id_reverse = MatterSqlClient.sql_post(
+                        #             table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
 
-                    channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys)
-                    # channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
+                        channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys)
+                        # channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
+                    else:
+                        print(f"chat['creator_id'] {chat['creator_id']} not found in users db mattermost")
 
             print(Fore.GREEN + "Chats Inserted")
         except Exception as e:
@@ -145,21 +148,25 @@ class MattermostClient:
                     for user in users:
                         user_id = MatterSqlClient.sql_get(
                             'users', 'id', f"email='{user['email_id']}'")
-                        channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel[0]['id']}' and userid='{user_id[0]['id']}'")
-                        if "super_admin" in user['user_role']:
-                            schemeadmin = json.dumps(True)
-                        else:
-                            schemeadmin = json.dumps(False)
-                        values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
-                            notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+                        if user_id:
+                            channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel[0]['id']}' and userid='{user_id[0]['id']}'")
+                            if "super_admin" in user['user_role']:
+                                schemeadmin = json.dumps(True)
+                            else:
+                                schemeadmin = json.dumps(False)
+                            values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
+                                notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
 
-                        if channel_members:
-                            if channel_members[0].get("channelid") != channel[0]['id'] and channel_members[0].get("userid") != user_id[0]['id']:
+                            if channel_members:
+                                if channel_members[0].get("channelid") != channel[0]['id'] and channel_members[0].get("userid") != user_id[0]['id']:
+                                    MatterSqlClient.sql_post(
+                                        table_name="channelmembers", attrs=keys, values=values)
+                            else:
                                 MatterSqlClient.sql_post(
-                                    table_name="channelmembers", attrs=keys, values=values)
+                                        table_name="channelmembers", attrs=keys, values=values)
                         else:
-                            MatterSqlClient.sql_post(
-                                    table_name="channelmembers", attrs=keys, values=values)
+                            print(f"user['email_id'] {user['email_id']} not found in users db mattermost")
+
                 else:
                     print(f"{zoho_channel['name']} is not found in channels db mattermost")
             print(Fore.GREEN + "Channle Members Inserted")
@@ -184,18 +191,21 @@ class MattermostClient:
                         if zoho_cliq_message['type'] == 'text':
                             # try:  # bot users are not in mattermost users table
                                 user_id = MatterSqlClient.sql_get('users', 'id', f"username like '%{remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])}%'")
-                                posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}'")
-                                type_text_values = [self.generate_id(
-                                    26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], mm_channel['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
-                                if posts_db:
-                                    if posts_db[0]['channelid'] != mm_channel['id'] and posts_db[0]['userid'] != user_id[0]['id']:
+                                if user_id:
+                                    posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}'")
+                                    type_text_values = [self.generate_id(
+                                        26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], mm_channel['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
+                                    if posts_db:
+                                        if posts_db[0]['channelid'] != mm_channel['id'] and posts_db[0]['userid'] != user_id[0]['id']:
+                                            text +=1
+                                            MatterSqlClient.sql_post(
+                                                table_name='posts', attrs=posts_keys, values=type_text_values)
+                                    else:
                                         text +=1
                                         MatterSqlClient.sql_post(
-                                            table_name='posts', attrs=posts_keys, values=type_text_values)
+                                                table_name='posts', attrs=posts_keys, values=type_text_values)
                                 else:
-                                    text +=1
-                                    MatterSqlClient.sql_post(
-                                            table_name='posts', attrs=posts_keys, values=type_text_values)
+                                    print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
                             # except:
                             #     pass
                         if zoho_cliq_message['type'] == 'file':
