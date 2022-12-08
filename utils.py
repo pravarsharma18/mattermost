@@ -5,6 +5,8 @@ import random
 import logging
 import traceback
 import sys
+from datetime import datetime
+import time
 
 logger = logging.getLogger('StackDriverHandler')
 
@@ -72,4 +74,12 @@ def save_logs(e):
 
 def replace_escape_characters(value):
     return value.replace("'", "''")
+
+def get_timestamp_from_date(date) -> int:
+        if date != 'NaN':
+            date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z")
+            tuple = date.timetuple()
+            return int(time.mktime(tuple) * 1000)
+        else:
+            return int(time.time() * 1000)
     
