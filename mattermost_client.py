@@ -26,23 +26,34 @@ class MattermostClient:
     def generate_id(self, size_of_id) -> str:
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=size_of_id))
 
-    def create_user_data(self) -> list:
-        users = ZohoSqlClient.sql_get(
-            "portal_users", "name, role, email,role_name,active")
+    def create_user_data(self, users) -> list:
         li = []
         keys = "id,createat,updateat,deleteat,username,password,authservice,email,nickname,firstname,lastname,emailverified,roles,allowmarketing,props,notifyprops,lastpasswordupdate,lastpictureupdate,failedattempts,locale,mfasecret,position,mfaactive,timezone"
         if not users:
             print(Fore.RED + "Zoho Database might be empty.")
             sys.exit()
         for user in users:
-            if user['role_name'].lower() == ("administrator" or "manager"):
-                roles = "system_user system_admin"
+            if user.get('role_name'):
+                if user['role_name'].lower() == ("administrator" or "manager"):
+                    roles = "system_user system_admin"
+                else:
+                    roles = "system_user"
             else:
                 roles = "system_user"
-            if not user['active']:
-                delete_at = self.get_timestamp()
+            if user.get('email'):
+                email = user.get('email')
             else:
-                delete_at = 0
+                email = user.get('email_id')
+            if user.get('active'):
+                if not user.get('active'):
+                    delete_at = self.get_timestamp()
+                else:
+                    delete_at = 0
+            else:
+                if not user.get('status'):
+                    delete_at = self.get_timestamp()
+                else:
+                    delete_at = 0
             notify_props = {
                 "push": "mention",
                 "email": "true",
@@ -63,14 +74,38 @@ class MattermostClient:
                 "useAutomaticTimezone": "true"
             }
             values = [self.generate_id(26), self.get_timestamp(
-            ), self.get_timestamp(), delete_at, user['name'], "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", user['email'], "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
+            ), self.get_timestamp(), delete_at, user['name'], "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", email, "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
 
             li.append(dict(zip(keys.split(','), values)))
         return li
 
-    def insert_user_data(self) -> None:
+    def insert_portal_user_data(self) -> None:
         try:
-            users = self.create_user_data()
+            portal_users = ZohoSqlClient.sql_get(
+                "portal_users", "name, email, role_name, active")
+            users = self.create_user_data(portal_users)
+            for user in users:
+                values = user.values()
+                project_list = [i for i in values]
+                users_values = [json.loads(json.dumps(v)) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int) or isinstance(v, str)) else v for i, v in enumerate(
+                    project_list)]
+                user_name = MatterSqlClient.sql_get("users", "email", f"email='{user['email']}' ")
+                if user_name:
+                    if user_name[0].get("email") != user['email']:
+                        MatterSqlClient.sql_post(
+                        table_name="users", attrs=user.keys(), values=users_values)
+                else:
+                    MatterSqlClient.sql_post(
+                        table_name="users", attrs=user.keys(), values=users_values)
+            print(Fore.GREEN + "## Inserted User data ##")
+        except Exception as e:
+            save_logs(e)
+    
+    def insert_cliq_user_data(self) -> None:
+        try:
+            cliq_users = ZohoSqlClient.sql_get(
+                "cliq_users", "name,email_id,status")
+            users = self.create_user_data(cliq_users)
             for user in users:
                 values = user.values()
                 project_list = [i for i in values]
@@ -376,7 +411,9 @@ class MattermostClient:
             save_logs(e)
 
     def main(self) -> None:
-        self.insert_user_data()
+        self.insert_portal_user_data()
+        
+        self.insert_cliq_user_data()
         # time.sleep(1)
         self.insert_team_data()
         # time.sleep(1)
