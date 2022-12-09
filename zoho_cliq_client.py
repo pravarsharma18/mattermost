@@ -8,7 +8,7 @@ import time
 import pandas as pd
 import csv
 import sys
-from utils import create_new_column, remove_punctions, save_logs
+from utils import check_token_revoke_cliq, create_new_column, remove_punctions, save_logs
 from decouple import config
 
 
@@ -26,20 +26,27 @@ class ZohoClient:
         headers.update(header)
         r = requests.get(url, headers=headers)
         # print("******************", url)
-        if headers.get("Content-Type") == 'text/csv':
-            return r.status_code, r.text
+        if r.status_code == 401:
+            new_access_token = check_token_revoke_cliq(r)
+            self.access_token = new_access_token
+            
+            r.status_code, r  = self.get_chat_api(path)
+            return r.status_code, r
         else:
-            return r.status_code, r.json()
+            return r.status_code, r
+
 
     def get_all_users(self):
         try:
-            s, data = self.get_chat_api('api/v2/users')
+            s, cliq_users = self.get_chat_api('api/v2/users?fields=all')
+            data = cliq_users.json()
             users = []
             users.extend(data['data'])
             if data['has_more']:
                 while data['has_more']:
-                    s, data = self.get_chat_api(
+                    s, cliq_users = self.get_chat_api(
                         f'api/v2/users?next_token={data["next_token"]}')
+                    data = cliq_users.json()
                     users.extend(data['data'])
 
                     if not data['has_more']:
@@ -81,9 +88,10 @@ class ZohoClient:
                     url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id?next_token={token}'
                 s, channels = self.get_chat_api(url)
                 
+                data = channels.json()
                 # print(channels)
-                if channels.get('channels'):
-                    for channel in channels.get('channels'):
+                if data.get('channels'):
+                    for channel in data.get('channels'):
                         keys = list(channel.keys())
                         columns = ZohoSqlClient.get_columns("cliq_channels")
                         # Alter table columns as per field from api.
@@ -100,8 +108,8 @@ class ZohoClient:
                         else:
                             ZohoSqlClient.sql_post(
                                 table_name="cliq_channels", attrs=keys, values=values)
-                if channels.get('has_more'):
-                    token = channels.get("next_token")
+                if data.get('has_more'):
+                    token = data.get("next_token")
                 else:
                     a = False
                     break
@@ -114,9 +122,9 @@ class ZohoClient:
             keys = ZohoSqlClient.get_columns('cliq_channel_members')
             channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id')
             for channel in channels:
-                s, data = self.get_chat_api(
+                s, member = self.get_chat_api(
                     f"api/v2/channels/{channel['channel_id']}/members")
-        
+                data = member.json()
                 members = data.get('members')
                 if members:
                     for member in members:
@@ -152,8 +160,10 @@ class ZohoClient:
                     chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time&next_token={next_token}'
                 else:
                     chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time'
-                s, data = self.get_chat_api(
+                s, response_chats = self.get_chat_api(
                     chat_url, header={"Content-Type": 'text/csv'})
+                
+                data = response_chats.text
                 # s, data = self.get_chat_api(
                 #     'api/v2/chats')
                 with open('chats.csv', 'w') as f:
@@ -180,22 +190,33 @@ class ZohoClient:
                     # Alter table columns as per field from api.
                     create_new_column(keys, columns, "cliq_chats")
                     db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
-                    if count == 15:
+                    if count == 12:
                         count = 1
-                        print("Members's Api is throttled, wait for 15 seconds....")
-                        time.sleep(15)
-                    s, chat_members = self.get_chat_api(
+                        print("Members's Api is throttled, wait for 30 seconds....")
+                        time.sleep(30)
+                    s, response_chat_members = self.get_chat_api(
                         f'maintenanceapi/v2/chats/{chat["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
-                    count +=1
+                    
+                    chat_members = response_chat_members.text
+                    count += 1
                     v = [i for i in chat.values()]
                     values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                         v)]
-                    values.insert(0, json.dumps(chat_members.split()[1:]))
+                    if "html" in chat_members: 
+                        values.insert(0, json.dumps([]))
+                    else:
+                        values.insert(0, json.dumps(chat_members.split()[1:]))
                     keys.insert(0, "recipients_summary")
                     if db_cliq_chats:
                         if db_cliq_chats[0]['chat_id'] != chat['chat_id']:
                             ZohoSqlClient.sql_post(
                                 table_name="cliq_chats", attrs=keys, values=values)
+                        else:
+                            set_value = ""
+                            for i in list(zip(keys, values)):
+                                set_value += f"{i[0]} = '{i[1]}' ,"
+                            set_value = set_value[:-1] # to remove last ','
+                            ZohoSqlClient.sql_update(table_name="cliq_chats", set=set_value, where=f"chat_id = '{chat['chat_id']}'")
                     else:
                         ZohoSqlClient.sql_post(
                             table_name="cliq_chats", attrs=keys, values=values)
@@ -217,10 +238,10 @@ class ZohoClient:
             chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
             for chat_id in chat_ids:
                 message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages'
-                s, messages = self.get_chat_api(message_url)  # maintenance
+                s, response_messages = self.get_chat_api(message_url)  # maintenance
+                messages = response_messages.json()
                 try:  # some data has no chats, to eliminate that error
                     for data in messages:
-                        db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}'")
                         keys = list(data.keys())
                         columns = ZohoSqlClient.get_columns("cliq_messages")
                         # Alter table columns as per field from api.
@@ -232,6 +253,7 @@ class ZohoClient:
                         data_values.insert(0, chat_id["chat_id"])
                         keys.insert(0, "chat_id")
                         
+                        db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}'")
                         if db_cliq_messages:
                             if db_cliq_messages[0]['id'] != data['id']:
                                 ZohoSqlClient.sql_post(
@@ -259,7 +281,6 @@ class ZohoClient:
         self.bulk_conversation()
         # time.sleep(1)
         self.bulk_messages()
-
 
 if __name__ == '__main__':
     print(Fore.YELLOW + "\n<========Saving Zoho Data in DB=========>\n")

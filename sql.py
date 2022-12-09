@@ -10,15 +10,6 @@ class ZohoSqlClient:
         try:
             cursor = cls.zohomydb.cursor()
         except psycopg2.InterfaceError as e:
-            print('{} - connection will be reset'.format(e))
-            # Close old connection
-            if cls.zohomydb:
-                if cursor:
-                    cursor.close()
-                cls.zohomydb.close()
-            cls.zohomydb = None
-            cursor = None
-
             # Reconnect
             cls.zohomydb = psycopg2.connect(host=config('ZOHO_HOST'), database=config('ZOHO_DATABASE'),
                                 user=config('ZOHO_USER'), password=config('ZOHO_PASSWORD'), port=config('ZOHO_PORT'))
@@ -27,23 +18,29 @@ class ZohoSqlClient:
 
     @classmethod
     def sql_get(cls, table_name, fields="*", params="") -> list:
-        mycursor = cls.get_cursor()
-        if params:
-            query = f"SELECT {fields} FROM {table_name} where {params}"
-        else:
-            query = f"SELECT {fields} FROM {table_name}"
-        mycursor.execute(query)
-        myresult = mycursor.fetchall()
-        if myresult:
-            li = []
-            for i in myresult:
-                row = dict(zip([desc[0] for desc in mycursor.description], i))
-                li.append(row)
-            mycursor.close()
-            return li
-        else:
-            mycursor.close()
-            return myresult
+        try:
+            mycursor = cls.get_cursor()
+            if params:
+                query = f"SELECT {fields} FROM {table_name} where {params}"
+            else:
+                query = f"SELECT {fields} FROM {table_name}"
+            mycursor.execute(query)
+            myresult = mycursor.fetchall()
+            if myresult:
+                li = []
+                for i in myresult:
+                    row = dict(zip([desc[0] for desc in mycursor.description], i))
+                    li.append(row)
+                mycursor.close()
+                return li
+            else:
+                mycursor.close()
+                return myresult
+        except (Exception, psycopg2.Error) as error:
+            print(f"Failed to get record from {table_name} table in zoho db", error)
+        finally:
+            if cls.zohomydb is not None:
+                cls.zohomydb.close()
 
     @classmethod
     def sql_post(cls, **kwargs):
@@ -71,6 +68,20 @@ class ZohoSqlClient:
             if kwargs.get('returning'):
                 id = mycursor.fetchone()[0]
                 return id
+        except (Exception, psycopg2.Error) as error:
+            print("Failed to insert record into mobile table", error)
+    
+    @classmethod
+    def sql_update(cls, table_name, set, where="") -> None:
+        if where:
+            query = f"UPDATE {table_name} SET {set} where {where}"
+        else:
+            query = f"UPDATE {table_name} SET {set}"
+        try:
+            mycursor = cls.get_cursor()
+            mycursor.execute(query)
+            cls.zohomydb.commit()
+            mycursor.close()
         except (Exception, psycopg2.Error) as error:
             print("Failed to insert record into mobile table", error)
 
@@ -118,15 +129,6 @@ class MatterSqlClient:
         try:
             cursor = cls.mattermydb.cursor()
         except psycopg2.InterfaceError as e:
-            print('{} - connection will be reset'.format(e))
-            # Close old connection
-            if cls.mattermydb:
-                if cursor:
-                    cursor.close()
-                cls.mattermydb.close()
-            cls.mattermydb = None
-            cursor = None
-
             # Reconnect
             cls.mattermydb = psycopg2.connect(host=config('MATTERMOST_HOST'), database=config('MATTERMOST_DATABASE'),
                                 user=config('MATTERMOST_USER'), password=config('MATTERMOST_PASSWORD'), port=config('MATTERMOST_PORT'))
@@ -135,24 +137,30 @@ class MatterSqlClient:
 
     @classmethod
     def sql_get(cls, table_name, fields="*", params=""):
-        mycursor = cls.get_cursor()
-        if params:
-            query = f"SELECT {fields} FROM {table_name} where {params}"
-        else:
-            query = f"SELECT {fields} FROM {table_name}"
-        mycursor.execute(query)
-        myresult = mycursor.fetchall()
-        
-        if myresult:
-            li = []
-            for i in myresult:
-                row = dict(zip([desc[0] for desc in mycursor.description], i))
-                li.append(row)
-            mycursor.close()
-            return li
-        else:
-            mycursor.close()
-            return myresult
+        try:
+            mycursor = cls.get_cursor()
+            if params:
+                query = f"SELECT {fields} FROM {table_name} where {params}"
+            else:
+                query = f"SELECT {fields} FROM {table_name}"
+            mycursor.execute(query)
+            myresult = mycursor.fetchall()
+            
+            if myresult:
+                li = []
+                for i in myresult:
+                    row = dict(zip([desc[0] for desc in mycursor.description], i))
+                    li.append(row)
+                mycursor.close()
+                return li
+            else:
+                mycursor.close()
+                return myresult
+        except (Exception, psycopg2.Error) as error:
+            print(f"Failed to get record from {table_name} table in mattermost db", error)
+        finally:
+            if cls.zohomydb is not None:
+                cls.zohomydb.close()
 
     @classmethod
     def sql_post(cls, **kwargs) -> None or str:
@@ -190,8 +198,12 @@ class MatterSqlClient:
             mycursor = cls.get_cursor()
             mycursor.execute(query)
             cls.mattermydb.commit()
+            mycursor.close()
         except (Exception, psycopg2.Error) as error:
             print("Failed to insert record into mobile table", error)
+        finally:
+            if cls.mattermydb is not None:
+                cls.mattermydb.close()
 
     @classmethod
     def sql_delete(cls, table_name, where="") -> None:

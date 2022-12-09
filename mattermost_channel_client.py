@@ -44,13 +44,17 @@ class MattermostClient:
                 pass
             for team in teams:
                 for channel in channels:
-                    chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel['name'][1:]}%'" )
-                    if chat_id:
-                        channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
+                    channel_name = channel.get('name')
+                    chat_id = []
+                    if channel_name:
+                        chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel_name[1:]}%'" )
+                    if chat_id:                        
                         creator_id = MatterSqlClient.sql_get(
-                            "users", "id", f"email='{channel['creator_id']}'")
+                            "users", "id", f"username='{remove_punctions(channel['creator_name'])}'")
                         if creator_id:
-                            values = [self.generate_id(26), channel.get('creation_time'), channel.get('creation_time'), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", channel.get('creation_time'), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
+                            # print(type(channel.get('creation_time')))
+                            values = [self.generate_id(26), self.get_timestamp_from_date(channel.get('creation_time')), self.get_timestamp_from_date(channel.get('creation_time')), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", self.get_timestamp_from_date(channel.get('creation_time')), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
+                            channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
                             if channels:
                                 if channels[0]['teamid'] != team['id'] and channels[0]['displayname'] != channel['name']:
                                     MatterSqlClient.sql_post(
@@ -60,8 +64,9 @@ class MattermostClient:
                                     table_name='channels', attrs=keys, values=values)
                         else:
                             print(f"channel['creator_id'] {channel['creator_id']} not found in mattermost db users")
+                            print(f"channel['creator_id'] {remove_punctions(channel['creator_name'])} not found in mattermost db users")
                     else:
-                        print(f"channel['name'] {channel['name'][1:]} not found in cliq_chats")
+                        print(f"channel['name'] {channel_name} not found in cliq_chats")
             print(Fore.GREEN + "Channel Inserted")
         except Exception as e:
             save_logs(e)
@@ -168,7 +173,7 @@ class MattermostClient:
                             print(f"user['email_id'] {user['email_id']} not found in users db mattermost")
 
                 else:
-                    print(f"{zoho_channel['name']} is not found in channels db mattermost")
+                    print(f"{zoho_channel['name']} is not found in channels db mattermost, no chat is there for this channel.")
             print(Fore.GREEN + "Channle Members Inserted")
         except Exception as e:
             save_logs(e)

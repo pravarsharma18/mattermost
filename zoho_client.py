@@ -7,7 +7,7 @@ from sql import ZohoSqlClient
 import sys
 from typing import Tuple
 from decouple import config
-from utils import create_new_column, remove_punctions, save_logs
+from utils import check_token_revoke_project, create_new_column, remove_punctions, save_logs
 import time
 
 class ZohoClient:
@@ -17,7 +17,6 @@ class ZohoClient:
     access_token = config('ZOHO_PROJECT_API_KEY')
     api_range = 200
     index = 1
-    # restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/
 
     def get_project_api(self, path) -> Tuple[int, dict]:
         url = f"{self.zoho_project_base_url}{path}"
@@ -25,16 +24,22 @@ class ZohoClient:
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json"
         }
+
         r = requests.get(url, headers=headers)
-        if r.status_code == 200:
-            return r.status_code, r.json()
+
+        if r.status_code == 401:
+            new_access_token = check_token_revoke_project(r)
+            self.access_token = new_access_token
+            r.status_code, r  = self.get_project_api(path)
+            return r.status_code, r
         else:
             return r.status_code, r
 
     def get_portal_ids(self) -> list:
-        status_code, data = self.get_project_api("restapi/portals/")
+        status_code, portals = self.get_project_api("restapi/portals/")
+        data = portals.json()
         if not status_code in range(200, 299):
-            return data.json()
+            return data
         return data['portals']
 
     def save_portal_data(self) -> None:
@@ -73,10 +78,11 @@ class ZohoClient:
             for portal_id in portal_ids:
                 status_code, projects = self.get_project_api(
                     f"restapi/portal/{portal_id['id']}/projects/")
+                data= projects.json()
                 if status_code != 200:
-                    return projects
+                    return projects.json()
                 # pprint(projects['projects'])
-                for project in projects['projects']:
+                for project in data['projects']:
                     p_id = ZohoSqlClient.sql_get("projects", "id", f"id='{project['id']}'")
                     keys = list(project.keys())
                     columns = ZohoSqlClient.get_columns("projects")
@@ -115,8 +121,9 @@ class ZohoClient:
                         x[0]= x[1]
                         return x
                     
+                    data = users.json()
                     # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-                    df = pd.DataFrame(users['users'])
+                    df = pd.DataFrame(data['users'])
                     df['name'] = df['name'].apply(lambda x: remove_punctions(x))
                     df_duplicated = df[df['name'].duplicated()]
                     df = df.drop_duplicates(subset=['name'])
@@ -161,10 +168,11 @@ class ZohoClient:
                     status_code, users = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
                     count +=1
+                    data = users.json()
                     if status_code !=200:
-                        return users
+                        return users.json()
                     # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-                    df = pd.DataFrame(users['users'])
+                    df = pd.DataFrame(data['users'])
                     df['name'] = df['name'].apply(lambda x: remove_punctions(x))
                     users = df.to_dict('records')
 
@@ -203,10 +211,11 @@ class ZohoClient:
                 for project_id in project_ids:
                     status_code, tasks = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/tasks/")
+                    data = tasks.json()
                     if not status_code in range(200, 299):
-                        return tasks
+                        return tasks.json()
                     try:
-                        for task in tasks['tasks']:
+                        for task in data['tasks']:
                             tasks_id = ZohoSqlClient.sql_get("tasks", "id,project_name", f"id='{task['id']}' and project_name='{project_id['name']}'")
                             values = task.values()
                             keys = list(task.keys())
@@ -240,8 +249,11 @@ class ZohoClient:
         """
         self.save_portal_data()
         self.save_projects_data()
+        time.sleep(1)
         self.save_portal_users_data()
+        time.sleep(1)
         self.save_project_users_data()
+        time.sleep(1)
         self.save_tasks_data()
 
 

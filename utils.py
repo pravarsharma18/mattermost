@@ -7,6 +7,8 @@ import traceback
 import sys
 from datetime import datetime
 import time
+from decouple import config
+import requests
 
 logger = logging.getLogger('StackDriverHandler')
 
@@ -83,3 +85,64 @@ def get_timestamp_from_date(date) -> int:
         else:
             return int(time.time() * 1000)
     
+
+def check_token_revoke_project(request):
+    base_url = "https://accounts.zoho.in/oauth/v2/token"
+    refresh_token = config('ZOHO_PROJECT_REFRESH_TOKEN')
+    grant_type = "refresh_token"
+    scope = config('SCOPE')
+    client_id = config('CLIENT_ID')
+    client_secret = config('CLIENT_SECRET')
+    url = f"{base_url}?refresh_token={refresh_token}&grant_type={grant_type}&scope={scope}&client_id={client_id}&client_secret={client_secret}"
+    
+    new_access_token = None
+    if request.status_code == 401:
+        print("Generating new access token for PROJECT...")
+        new_request = requests.post(url)
+        new_token_request = new_request.json()
+
+        new_access_token = new_token_request.get('access_token')
+        # sys.exit()
+        new_row=[]
+        with open('.env', 'r') as f:
+            rows = f.readlines()
+        for row in rows:
+            if 'ZOHO_PROJECT_API_KEY' == row.split('=')[0]:
+                row = row.replace(row, f"{row.split('=')[0]}={new_access_token}\n")
+            new_row.append(row)
+
+        with open('.env', 'w') as f:
+            f.writelines( new_row )
+        print(f"new access token for PROJECT is ... {new_access_token}")
+    return new_access_token
+
+
+def check_token_revoke_cliq(request):
+    base_url = "https://accounts.zoho.in/oauth/v2/token"
+    refresh_token = config('ZOHO_CLIQ_REFRESH_TOKEN')
+    grant_type = "refresh_token"
+    scope = config('SCOPE')
+    client_id = config('CLIENT_ID')
+    client_secret = config('CLIENT_SECRET')
+    url = f"{base_url}?refresh_token={refresh_token}&grant_type={grant_type}&scope={scope}&client_id={client_id}&client_secret={client_secret}"
+    
+    new_access_token = None
+    if request.status_code == 401:
+        print("Generating new access token for CLIQ...")
+        new_request = requests.post(url)
+        new_token_request = new_request.json()
+
+        new_access_token = new_token_request.get('access_token')
+        # sys.exit()
+        new_row=[]
+        with open('.env', 'r') as f:
+            rows = f.readlines()
+        for row in rows:
+            if 'ZOHO_CLIQ_API_KEY' == row.split('=')[0]:
+                row = row.replace(row, f"{row.split('=')[0]}={new_access_token}\n")
+            new_row.append(row)
+
+        with open('.env', 'w') as f:
+            f.writelines( new_row )
+        print(f"new access token for CLIQ is ... {new_access_token}")
+    return new_access_token
