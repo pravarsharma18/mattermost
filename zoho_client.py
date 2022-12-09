@@ -49,7 +49,6 @@ class ZohoClient:
                 print(Fore.RED + str(portal_ids))
                 sys.exit()
             for portal in portal_ids:
-                p_id = ZohoSqlClient.sql_get("portals", "id", f"id='{portal['id']}'")
                 keys = list(portal.keys())
                 values = list(portal.values())
                 columns = ZohoSqlClient.get_columns("portals")
@@ -60,6 +59,7 @@ class ZohoClient:
                 li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                     values)]
 
+                p_id = ZohoSqlClient.sql_get("portals", "id", f"id='{portal['id']}'")
                 if p_id:
                     if int(p_id[0]['id']) != portal['id']:
                         ZohoSqlClient.sql_post(
@@ -78,12 +78,11 @@ class ZohoClient:
             for portal_id in portal_ids:
                 status_code, projects = self.get_project_api(
                     f"restapi/portal/{portal_id['id']}/projects/")
-                data= projects.json()
                 if status_code != 200:
                     return projects.json()
+                data= projects.json()
                 # pprint(projects['projects'])
                 for project in data['projects']:
-                    p_id = ZohoSqlClient.sql_get("projects", "id", f"id='{project['id']}'")
                     keys = list(project.keys())
                     columns = ZohoSqlClient.get_columns("projects")
 
@@ -94,6 +93,7 @@ class ZohoClient:
                     project_list = [i for i in values]
                     li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                         project_list)]
+                    p_id = ZohoSqlClient.sql_get("projects", "id", f"id='{project['id']}'")
                     if p_id:
                         if int(p_id[0]['id']) != project['id']:
                             ZohoSqlClient.sql_post(
@@ -133,7 +133,6 @@ class ZohoClient:
                     df['active'] = df['active'].fillna(False)
                     users = df.to_dict('records')
                     for user in users:
-                        portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
                         keys = list(user.keys())
                         columns = ZohoSqlClient.get_columns("portal_users")
                         # Alter table columns as per field from api.
@@ -143,6 +142,7 @@ class ZohoClient:
                         user_list = [i for i in values]
                         li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                             user_list)]
+                        portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
                         if portal_users_id:
                             if portal_users_id[0]['email'] != user['email']:
                                 ZohoSqlClient.sql_post(
@@ -168,16 +168,15 @@ class ZohoClient:
                     status_code, users = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
                     count +=1
-                    data = users.json()
                     if status_code !=200:
                         return users.json()
+                    data = users.json()
                     # to remove spaces and add '.' as mattermost username doesnot support spaces for username
                     df = pd.DataFrame(data['users'])
                     df['name'] = df['name'].apply(lambda x: remove_punctions(x))
                     users = df.to_dict('records')
 
                     for user in users:
-                        project_users = ZohoSqlClient.sql_get("project_users", "email,project_name", f"email='{user['email']}' and project_name='{project_id['name']}'")
                         keys = list(user.keys())
                         columns = ZohoSqlClient.get_columns("project_users")
 
@@ -191,6 +190,7 @@ class ZohoClient:
                             user_list)]
                         li.insert(0, project_id['name'])
                         keys.insert(0,"project_name")
+                        project_users = ZohoSqlClient.sql_get("project_users", "email,project_name", f"email='{user['email']}' and project_name='{project_id['name']}'")
                         if project_users:
                             if project_users[0]['email'] != user['email'] and project_users[0]['project_name'] != project_id['name']:
                                 ZohoSqlClient.sql_post(
@@ -211,12 +211,11 @@ class ZohoClient:
                 for project_id in project_ids:
                     status_code, tasks = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/tasks/")
-                    data = tasks.json()
                     if not status_code in range(200, 299):
                         return tasks.json()
+                    data = tasks.json()
                     try:
-                        for task in data['tasks']:
-                            tasks_id = ZohoSqlClient.sql_get("tasks", "id,project_name", f"id='{task['id']}' and project_name='{project_id['name']}'")
+                        for task in data.get('tasks'):
                             values = task.values()
                             keys = list(task.keys())
                             columns = ZohoSqlClient.get_columns("tasks")
@@ -230,6 +229,7 @@ class ZohoClient:
                             values.insert(0, project_id['name'])
                             keys.insert(0, 'project_name')
                             
+                            tasks_id = ZohoSqlClient.sql_get("tasks", "id,project_name", f"id='{task['id']}' and project_name='{project_id['name']}'")
                             if tasks_id:
                                 if tasks_id[0]['id'] != str(task['id']) and tasks_id[0]['project_name'] != project_id['name']:
                                     ZohoSqlClient.sql_post(
