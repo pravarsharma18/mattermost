@@ -159,8 +159,8 @@ class MatterSqlClient:
         except (Exception, psycopg2.Error) as error:
             print(f"Failed to get record from {table_name} table in mattermost db", error)
         finally:
-            if cls.zohomydb is not None:
-                cls.zohomydb.close()
+            if cls.mattermydb is not None:
+                cls.mattermydb.close()
 
     @classmethod
     def sql_post(cls, **kwargs) -> None or str:
