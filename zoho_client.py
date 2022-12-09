@@ -168,8 +168,8 @@ class ZohoClient:
                     status_code, users = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
                     count +=1
-                    if status_code !=200:
-                        return users.json()
+                    if status_code != 200:
+                        return users
                     data = users.json()
                     # to remove spaces and add '.' as mattermost username doesnot support spaces for username
                     df = pd.DataFrame(data['users'])
