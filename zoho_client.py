@@ -43,12 +43,12 @@ class ZohoClient:
         return data['portals']
 
     def save_portal_data(self) -> None:
-        try:
-            portal_ids = self.get_portal_ids()
-            if isinstance(portal_ids, dict):
-                print(Fore.RED + str(portal_ids))
-                sys.exit()
-            for portal in portal_ids:
+        portal_ids = self.get_portal_ids()
+        if isinstance(portal_ids, dict):
+            print(Fore.RED + str(portal_ids))
+            sys.exit()
+        for portal in portal_ids:
+            try:
                 keys = list(portal.keys())
                 values = list(portal.values())
                 columns = ZohoSqlClient.get_columns("portals")
@@ -67,143 +67,157 @@ class ZohoClient:
                 else:
                     ZohoSqlClient.sql_post(
                         table_name="portals", attrs=portal.keys(), values=li)
-        except Exception as e:
-            save_logs(e)
+            except Exception as e:
+                print(f"Exception in saving portal : {portal}")
+                save_logs(e)
 
         print(Fore.GREEN + "## Portals saved in db ##")
 
     def save_projects_data(self) -> None:
-        try:
             portal_ids = ZohoSqlClient.sql_get("portals", "id")
             for portal_id in portal_ids:
-                status_code, projects = self.get_project_api(
-                    f"restapi/portal/{portal_id['id']}/projects/")
-                if status_code != 200:
-                    return projects.json()
-                data= projects.json()
-                # pprint(projects['projects'])
-                for project in data['projects']:
-                    keys = list(project.keys())
-                    columns = ZohoSqlClient.get_columns("projects")
+                try:
+                    status_code, projects = self.get_project_api(
+                        f"restapi/portal/{portal_id['id']}/projects/")
+                    if status_code != 200:
+                        return projects.json()
+                    data= projects.json()
+                    # pprint(projects['projects'])
+                    for project in data['projects']:
+                        try:
+                            keys = list(project.keys())
+                            columns = ZohoSqlClient.get_columns("projects")
 
-                    # Alter table columns as per field from api.
-                    create_new_column(keys, columns, "projects")
+                            # Alter table columns as per field from api.
+                            create_new_column(keys, columns, "projects")
 
-                    values = project.values()
-                    project_list = [i for i in values]
-                    li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                        project_list)]
-                    p_id = ZohoSqlClient.sql_get("projects", "id", f"id='{project['id']}'")
-                    if p_id:
-                        if int(p_id[0]['id']) != project['id']:
-                            ZohoSqlClient.sql_post(
-                                table_name="projects", attrs=project.keys(), values=li)
-                    else:
-                        ZohoSqlClient.sql_post(
-                            table_name="projects", attrs=project.keys(), values=li)
+                            values = project.values()
+                            project_list = [i for i in values]
+                            li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                project_list)]
+                            p_id = ZohoSqlClient.sql_get("projects", "id", f"id='{project['id']}'")
+                            if p_id:
+                                if int(p_id[0]['id']) != project['id']:
+                                    ZohoSqlClient.sql_post(
+                                        table_name="projects", attrs=project.keys(), values=li)
+                            else:
+                                ZohoSqlClient.sql_post(
+                                    table_name="projects", attrs=project.keys(), values=li)
+                        except Exception as e:
+                            print(f"Exception saving project : {project}")
+                            save_logs(e)
+                except Exception as e:
+                        print(f"Exception getting portal : {portal_id}")
+                        save_logs(e)
             print(Fore.GREEN + "## Projects saved in db ##")
-        except Exception as e:
-            save_logs(e)
 
     def save_portal_users_data(self) -> None:
-        try:
             portal_ids = ZohoSqlClient.sql_get("portals", "id")
-            
             for portal_id in portal_ids:
-                while True:
-                    status_code, users = self.get_project_api(
-                        f"restapi/portal/{portal_id['id']}/users/?index={self.index}&range={self.api_range}&user_type=all")
-                    self.index = self.api_range + self.index
-                    # print(status_code)
-                    if status_code == 204:
-                        break
-                    def remove_duplicates(x):
-                        x[0]= x[1]
-                        return x
-                    
-                    data = users.json()
-                    # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-                    df = pd.DataFrame(data['users'])
-                    df['name'] = df['name'].apply(lambda x: remove_punctions(x))
-                    df_duplicated = df[df['name'].duplicated()]
-                    df = df.drop_duplicates(subset=['name'])
+                try:
+                    while True:
+                        status_code, users = self.get_project_api(
+                            f"restapi/portal/{portal_id['id']}/users/?index={self.index}&range={self.api_range}&user_type=all")
+                        self.index = self.api_range + self.index
+                        # print(status_code)
+                        if status_code == 204:
+                            break
+                        def remove_duplicates(x):
+                            x[0]= x[1]
+                            return x
+                        
+                        data = users.json()
+                        # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+                        df = pd.DataFrame(data['users'])
+                        df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+                        df_duplicated = df[df['name'].duplicated()]
+                        df = df.drop_duplicates(subset=['name'])
 
-                    df_duplicated[['name','email']] = df_duplicated[['name','email']].apply(remove_duplicates, axis=1)
-                    df = pd.concat([df, df_duplicated], axis=0)
-                    df['active'] = df['active'].fillna(False)
-                    users = df.to_dict('records')
-                    for user in users:
-                        keys = list(user.keys())
-                        columns = ZohoSqlClient.get_columns("portal_users")
-                        # Alter table columns as per field from api.
-                        create_new_column(keys, columns, "portal_users")
+                        df_duplicated[['name','email']] = df_duplicated[['name','email']].apply(remove_duplicates, axis=1)
+                        df = pd.concat([df, df_duplicated], axis=0)
+                        df['active'] = df['active'].fillna(False)
+                        users = df.to_dict('records')
+                        for user in users:
+                            try:
+                                keys = list(user.keys())
+                                columns = ZohoSqlClient.get_columns("portal_users")
+                                # Alter table columns as per field from api.
+                                create_new_column(keys, columns, "portal_users")
 
-                        values = user.values()
-                        user_list = [i for i in values]
-                        li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                            user_list)]
-                        portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
-                        if portal_users_id:
-                            if portal_users_id[0]['email'] != user['email']:
-                                ZohoSqlClient.sql_post(
-                                    table_name="portal_users", attrs=keys, values=li)
-                        else:
-                            ZohoSqlClient.sql_post(
-                                    table_name="portal_users", attrs=keys, values=li)
+                                values = user.values()
+                                user_list = [i for i in values]
+                                li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                    user_list)]
+                                portal_users_id = ZohoSqlClient.sql_get("portal_users", "email", f"email='{user['email']}'")
+                                if portal_users_id:
+                                    if portal_users_id[0]['email'] != user['email']:
+                                        ZohoSqlClient.sql_post(
+                                            table_name="portal_users", attrs=keys, values=li)
+                                else:
+                                    ZohoSqlClient.sql_post(
+                                            table_name="portal_users", attrs=keys, values=li)
+                            except Exception as e:
+                                print(f"Exception saving portal user: {user}")
+                                save_logs(e)
+                except Exception as e:
+                    print(f"Exception getting portal id: {portal_id}")
+                    save_logs(e)
             print(Fore.GREEN + "## Portal Users saved in db ##")
-        except Exception as e:
-            save_logs(e)
 
     def save_project_users_data(self) -> None:
-        try:
             portal_ids = ZohoSqlClient.sql_get("portals", "id")
             project_ids = ZohoSqlClient.sql_get("projects", "id,name")
             count = 1
             for portal_id in portal_ids:
                 for project_id in project_ids:
-                    if count == 90:
-                        count = 1
-                        print("Api is throttled, wait for 130 seconds....")
-                        time.sleep(130)
-                    status_code, users = self.get_project_api(
-                        f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
-                    count +=1
-                    if status_code != 200:
-                        return users
-                    data = users.json()
-                    # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-                    df = pd.DataFrame(data['users'])
-                    df['name'] = df['name'].apply(lambda x: remove_punctions(x))
-                    users = df.to_dict('records')
+                    try:
+                        if count == 90:
+                            count = 1
+                            print("Api is throttled, wait for 130 seconds....")
+                            time.sleep(130)
+                        status_code, users = self.get_project_api(
+                            f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
+                        count +=1
+                        if status_code != 200:
+                            return users
+                        data = users.json()
+                        # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+                        df = pd.DataFrame(data['users'])
+                        df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+                        users = df.to_dict('records')
 
-                    for user in users:
-                        keys = list(user.keys())
-                        columns = ZohoSqlClient.get_columns("project_users")
+                        for user in users:
+                            try:
+                                keys = list(user.keys())
+                                columns = ZohoSqlClient.get_columns("project_users")
 
-                        create_new_column(keys, columns, "project_users")
+                                create_new_column(keys, columns, "project_users")
 
-                        # Alter table columns as per field from api.
-                        
-                        values = user.values()
-                        user_list = [i for i in values]
-                        li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                            user_list)]
-                        li.insert(0, project_id['name'])
-                        keys.insert(0,"project_name")
-                        project_users = ZohoSqlClient.sql_get("project_users", "email,project_name", f"email='{user['email']}' and project_name='{project_id['name']}'")
-                        if project_users:
-                            if project_users[0]['email'] != user['email'] and project_users[0]['project_name'] != project_id['name']:
-                                ZohoSqlClient.sql_post(
-                                    table_name="project_users", attrs=keys, values=li)
-                        else:
-                            ZohoSqlClient.sql_post(
-                                        table_name="project_users", attrs=keys, values=li)
+                                # Alter table columns as per field from api.
+                                
+                                values = user.values()
+                                user_list = [i for i in values]
+                                li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                    user_list)]
+                                li.insert(0, project_id['name'])
+                                keys.insert(0,"project_name")
+                                project_users = ZohoSqlClient.sql_get("project_users", "email,project_name", f"email='{user['email']}' and project_name='{project_id['name']}'")
+                                if project_users:
+                                    if project_users[0]['email'] != user['email'] and project_users[0]['project_name'] != project_id['name']:
+                                        ZohoSqlClient.sql_post(
+                                            table_name="project_users", attrs=keys, values=li)
+                                else:
+                                    ZohoSqlClient.sql_post(
+                                                table_name="project_users", attrs=keys, values=li)
+                            except Exception as e:
+                                print(f"Exception in saving project user: {user}")
+                                save_logs(e)                   
+                    except Exception as e:
+                        print(f"Exception getting project id: {project_id}")
+                        save_logs(e)
             print(Fore.GREEN + "## Project Users saved in db ##")
-        except Exception as e:
-            save_logs(e)
 
     def save_tasks_data(self) -> None:
-        try:
             portal_ids = ZohoSqlClient.sql_get("portals", "id")
             project_ids = ZohoSqlClient.sql_get("projects", "id,name")
             keys = ZohoSqlClient.get_columns('tasks')
@@ -214,8 +228,8 @@ class ZohoClient:
                     if not status_code in range(200, 299):
                         return tasks.json()
                     data = tasks.json()
-                    try:
-                        for task in data.get('tasks'):
+                    for task in data.get('tasks'):
+                        try:
                             values = task.values()
                             keys = list(task.keys())
                             columns = ZohoSqlClient.get_columns("tasks")
@@ -237,11 +251,11 @@ class ZohoClient:
                             else:
                                 ZohoSqlClient.sql_post(
                                         table_name="tasks", attrs=keys, values=values)
-                    except:
-                        pass
+                        except Exception as e:
+                            print(f"Exception in saving tasks: {task}")
+                            save_logs(e)
             print(Fore.GREEN + "## Tasks saved in db ##")
-        except Exception as e:
-            save_logs(e)
+        
 
     def main(self):
         """

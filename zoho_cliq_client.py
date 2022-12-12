@@ -37,27 +37,27 @@ class ZohoClient:
 
 
     def get_all_users(self):
-        try:
-            s, cliq_users = self.get_chat_api('api/v2/users?fields=all')
-            data = cliq_users.json()
-            users = []
-            users.extend(data['data'])
-            if data['has_more']:
-                while data['has_more']:
-                    s, cliq_users = self.get_chat_api(
-                        f'api/v2/users?next_token={data["next_token"]}')
-                    data = cliq_users.json()
-                    users.extend(data['data'])
+        s, cliq_users = self.get_chat_api('api/v2/users?fields=all')
+        data = cliq_users.json()
+        users = []
+        users.extend(data['data'])
+        if data['has_more']:
+            while data['has_more']:
+                s, cliq_users = self.get_chat_api(
+                    f'api/v2/users?fields=all&next_token={data["next_token"]}')
+                data = cliq_users.json()
+                users.extend(data['data'])
 
-                    if not data['has_more']:
-                        break
-            # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-            df = pd.DataFrame(users)
-            df['name'] = df['name'].apply(lambda x: remove_punctions(x))
-            df['display_name'] = df['display_name'].apply(
-                lambda x: remove_punctions(x))
-            users = df.to_dict('records')
-            for user in users:
+                if not data['has_more']:
+                    break
+        # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+        df = pd.DataFrame(users)
+        df['name'] = df['name'].apply(lambda x: remove_punctions(x))
+        df['display_name'] = df['display_name'].apply(
+            lambda x: remove_punctions(x))
+        users = df.to_dict('records')
+        for user in users:
+            try:
                 keys = list(user.keys())
                 columns = ZohoSqlClient.get_columns("cliq_users")
                 # Alter table columns as per field from api.
@@ -73,25 +73,26 @@ class ZohoClient:
                 else:
                     ZohoSqlClient.sql_post(
                             table_name="cliq_users", attrs=keys, values=values)
-            print(Fore.GREEN + "Users Inserted")
-        except Exception as e:
-            save_logs(e)
+            except Exception as e:
+                print(f"Exception in saving cliq_users: {user}")
+                save_logs(e)
+        print(Fore.GREEN + "Users Inserted")
 
     def bulk_channels(self):
-        try:
-            a = True
-            while a:
-                token = ""
-                if not token:
-                    url = 'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id'
-                else:
-                    url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id?next_token={token}'
-                s, channels = self.get_chat_api(url)
-                
-                data = channels.json()
-                # print(channels)
-                if data.get('channels'):
-                    for channel in data.get('channels'):
+        a = True
+        while a:
+            token = ""
+            if not token:
+                url = 'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id'
+            else:
+                url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id?next_token={token}'
+            s, channels = self.get_chat_api(url)
+            
+            data = channels.json()
+            # print(channels)
+            if data.get('channels'):
+                for channel in data.get('channels'):
+                    try:
                         keys = list(channel.keys())
                         columns = ZohoSqlClient.get_columns("cliq_channels")
                         # Alter table columns as per field from api.
@@ -108,83 +109,88 @@ class ZohoClient:
                         else:
                             ZohoSqlClient.sql_post(
                                 table_name="cliq_channels", attrs=keys, values=values)
-                if data.get('has_more'):
-                    token = data.get("next_token")
-                else:
-                    a = False
-                    break
-            print(Fore.GREEN + "Channels Inserted")
-        except Exception as e:
-            save_logs(e)
+                    except Exception as e:
+                        print(f"Exception in saving cliq_channel: {channel['name']}")
+                        save_logs(e)
+            if data.get('has_more'):
+                token = data.get("next_token")
+            else:
+                a = False
+                break
+        print(Fore.GREEN + "Channels Inserted")
 
     def get_channel_members(self):
-        try:
-            keys = ZohoSqlClient.get_columns('cliq_channel_members')
-            channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id')
-            for channel in channels:
+        keys = ZohoSqlClient.get_columns('cliq_channel_members')
+        channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id')
+        for channel in channels:
+            try:
                 s, member = self.get_chat_api(
                     f"api/v2/channels/{channel['channel_id']}/members")
                 data = member.json()
                 members = data.get('members')
                 if members:
                     for member in members:
-                        values = list(member.values())
+                        try:
+                            values = list(member.values())
 
-                        keys = list(member.keys())
-                        columns = ZohoSqlClient.get_columns("cliq_channel_members")
-                        # Alter table columns as per field from api.
-                        create_new_column(keys, columns, "cliq_channel_members")
-                        
-                        li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                                values)]
-                        li.insert(0,channel['channel_id'])
-                        keys.insert(0, "channel_id")
-                        db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email_id,channel_id", f"email_id='{member['email_id']}' and channel_id='{channel['channel_id']}'")
-                        if db_channel_members:
-                            if db_channel_members[0]['email_id'] != member['email_id'] and db_channel_members[0]['channel_id'] != channel['channel_id']:
+                            keys = list(member.keys())
+                            columns = ZohoSqlClient.get_columns("cliq_channel_members")
+                            # Alter table columns as per field from api.
+                            create_new_column(keys, columns, "cliq_channel_members")
+                            
+                            li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                    values)]
+                            li.insert(0,channel['channel_id'])
+                            keys.insert(0, "channel_id")
+                            db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email_id,channel_id", f"email_id='{member['email_id']}' and channel_id='{channel['channel_id']}'")
+                            if db_channel_members:
+                                if db_channel_members[0]['email_id'] != member['email_id'] and db_channel_members[0]['channel_id'] != channel['channel_id']:
+                                    ZohoSqlClient.sql_post(
+                                        table_name='cliq_channel_members', attrs=keys, values=li)
+                            else:
                                 ZohoSqlClient.sql_post(
-                                    table_name='cliq_channel_members', attrs=keys, values=li)
-                        else:
-                            ZohoSqlClient.sql_post(
-                                    table_name='cliq_channel_members', attrs=keys, values=li)
-            print(Fore.GREEN + "Channel Members Saved")
-        except Exception as e:
-            save_logs(e)
+                                        table_name='cliq_channel_members', attrs=keys, values=li)
+                        except Exception as e:
+                            print(f"Exception in saving members: {member['name']}")
+            except Exception as e:
+                print(f"Exception in getting channel Members from api : {channel['channel_id']}")
+                save_logs(e)
+        print(Fore.GREEN + "Channel Members Saved")
 
     def bulk_conversation(self):
-        try:
-            a = True
-            next_token=""
-            while a:
-                if next_token:
-                    chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time&next_token={next_token}'
-                else:
-                    chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time'
-                s, response_chats = self.get_chat_api(
-                    chat_url, header={"Content-Type": 'text/csv'})
-                
-                data = response_chats.text
-                # s, data = self.get_chat_api(
-                #     'api/v2/chats')
-                with open('chats.csv', 'w') as f:
-                    f.writelines(data)
+        a = True
+        next_token=""
+        while a:
+            if next_token:
+                chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time&next_token={next_token}'
+            else:
+                chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time'
+            s, response_chats = self.get_chat_api(
+                chat_url, header={"Content-Type": 'text/csv'})
+            
+            data = response_chats.text
+            # s, data = self.get_chat_api(
+            #     'api/v2/chats')
+            with open('chats.csv', 'w') as f:
+                f.writelines(data)
 
-                chats = pd.read_csv('chats.csv')
-                
-                # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-                df = pd.DataFrame(chats)
-                df['title'] = df['title'].apply(lambda x: remove_punctions(x))
-                df['last_modified_time'] = df['last_modified_time'].astype('object')
-                df['last_modified_time'] = df['last_modified_time'].fillna(0)
-                df['last_modified_time'] = df['last_modified_time'].astype('int')
-                df['chat_id'] = df['chat_id'].fillna(0)
-                df = df.fillna("")
-                df = df.where(df['chat_id'] != 0)
-                df = df.dropna(how='all')
+            chats = pd.read_csv('chats.csv')
+            
+            # to remove spaces and add '.' as mattermost username doesnot support spaces for username
+            df = pd.DataFrame(chats)
+            df['title'] = df['title'].apply(lambda x: remove_punctions(x))
+            df['last_modified_time'] = df['last_modified_time'].astype('object')
+            df['last_modified_time'] = df['last_modified_time'].fillna(0)
+            df['last_modified_time'] = df['last_modified_time'].astype('int')
+            df['chat_id'] = df['chat_id'].fillna(0)
+            df = df.fillna("")
+            df = df.where(df['chat_id'] != 0)
+            df = df.dropna(how='all')
 
-                chats = df.to_dict('records')
-                count = 1
-                for chat in chats:
+            chats = df.to_dict('records')
+            count = 1
+            for chat in chats:
+                try:
                     keys = list(chat.keys())
                     columns = ZohoSqlClient.get_columns("cliq_chats")
                     # Alter table columns as per field from api.
@@ -220,53 +226,57 @@ class ZohoClient:
                     else:
                         ZohoSqlClient.sql_post(
                             table_name="cliq_chats", attrs=keys, values=values)
-                
-                with open("chats.csv", 'r') as file:
-                    tokn = file.readlines()[-1]
-                    if self.token_field in tokn:
-                        next_token = tokn.split("=")[1]
-                    else:
-                        print("chat inelse")
-                        a = False
-                        break
-            print(Fore.GREEN + "Conversations Inserted")
-        except Exception as e:
-            save_logs(e)
+                except Exception as e:
+                    print(f"Exception in getting channel Members from api : {chat['chat_id']}")
+                    save_logs(e)
+
+            with open("chats.csv", 'r') as file:
+                tokn = file.readlines()[-1]
+                if self.token_field in tokn:
+                    next_token = tokn.split("=")[1]
+                else:
+                    print("chat inelse")
+                    a = False
+                    break
+        print(Fore.GREEN + "Conversations Inserted")
 
     def bulk_messages(self):
-        try:
             chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
             for chat_id in chat_ids:
+                print(chat_id)
                 message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages'
                 s, response_messages = self.get_chat_api(message_url)  # maintenance
                 messages = response_messages.json()
                 try:  # some data has no chats, to eliminate that error
                     for data in messages:
-                        keys = list(data.keys())
-                        columns = ZohoSqlClient.get_columns("cliq_messages")
-                        # Alter table columns as per field from api.
-                        create_new_column(keys, columns, 'cliq_messages')
-                    
-                        values = list(data.values())
-                        data_values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                            values)]
-                        data_values.insert(0, chat_id["chat_id"])
-                        keys.insert(0, "chat_id")
+                        try:
+                            keys = list(data.keys())
+                            columns = ZohoSqlClient.get_columns("cliq_messages")
+                            # Alter table columns as per field from api.
+                            create_new_column(keys, columns, 'cliq_messages')
                         
-                        db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}'")
-                        if db_cliq_messages:
-                            if db_cliq_messages[0]['id'] != data['id']:
+                            values = list(data.values())
+                            data_values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                values)]
+                            data_values.insert(0, chat_id["chat_id"])
+                            keys.insert(0, "chat_id")
+                            
+                            db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}'")
+                            if db_cliq_messages:
+                                if db_cliq_messages[0]['id'] != data['id']:
+                                    ZohoSqlClient.sql_post(
+                                        table_name='cliq_messages', attrs=keys, values=data_values)
+                            else:
                                 ZohoSqlClient.sql_post(
-                                    table_name='cliq_messages', attrs=keys, values=data_values)
-                        else:
-                            ZohoSqlClient.sql_post(
-                                    table_name='cliq_messages', attrs=keys, values=data_values)
-                    print(f"Saved chats for chat_id: {chat_id}")
+                                        table_name='cliq_messages', attrs=keys, values=data_values)
+                        except Exception as e:
+                            print(f"Exception in saving cliq_messages: {data['id']}")
+                            save_logs(e)
+                    # print(f"Saved chats for chat_id: {chat_id}")
                 except Exception as e:
-                    print("Exception while saving chat data: ", e)
+                    pass
+                    # print("Exception while saving chat data: ", e)
             print(Fore.GREEN + "Messages Inserted")
-        except Exception as e:
-            save_logs(e)
 
     def main(self):
         """
