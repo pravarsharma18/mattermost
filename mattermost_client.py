@@ -16,9 +16,9 @@ from utils import ( card_propeties_values_id, card_propety_id, get_owners_id_by_
 
 class MattermostClient:
     def get_timestamp_from_date(self, date) -> int:
-        date = datetime.strptime(date, "%m-%d-%Y")
-        tuple = date.timetuple()
-        return int(time.mktime(tuple) * 1000)
+            date = datetime.strptime(date, "%m-%d-%Y")
+            tuple = date.timetuple()
+            return int(time.mktime(tuple) * 1000)
 
     def get_timestamp(self) -> int:
         return int(time.time() * 1000)
@@ -250,10 +250,22 @@ class MattermostClient:
             for team in teams:
                 for project in projects:
                     try:
+                        if project.get('description'):
+                            description = project.get('description')
+                        else:
+                            description = ""
+                        if project.get('created_date'):
+                            created_date = project.get('created_date')
+                        else:
+                            created_date = ""
+                        if project.get('updated_date'):
+                            updated_date = project.get('updated_date')
+                        else:
+                            updated_date = ""
                         user_id = MatterSqlClient.sql_get(
                             'users', 'id', f"username like '%{remove_punctions(project['created_by'])}%'")
                         
-                        values = [self.generate_id(26), datetime.now(), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(project['description'], "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(project['created_date']), self.get_timestamp_from_date(project['updated_date']), 0, ""]
+                        values = [self.generate_id(26), datetime.now(), team['id'], "", user_id[0]['id'], user_id[0]['id'], "P", project['name'], BeautifulSoup(description, "html.parser").get_text(), "", json.dumps(True), json.dumps(False), 4, json.dumps({}), json.dumps(card_properties), self.get_timestamp_from_date(created_date), self.get_timestamp_from_date(updated_date), 0, ""]
 
                         focalboard = MatterSqlClient.sql_get("focalboard_boards", "team_id,title", f"team_id='{team['id']}' and title='{project['name']}'")
 
@@ -377,21 +389,22 @@ class MattermostClient:
                                     select_type = type_id[0]['id']
                                 else:
                                     select_type = ""
-                                if task['description']:
+                                if task.get('description'):
                                     task_description = BeautifulSoup(
                                         task['description'], "html.parser").get_text()
+                                else:
+                                    task_description = ""
                                 description_id = ""
-                                if task_description:
-                                    focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{replace_escape_characters(task_description)}'")
-                                    description_values = [self.generate_id(
-                                        27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
-                                    if focalboardblocks_text:
-                                        if focalboardblocks_text[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "text" and focalboardblocks_text[0]['title'] != task_description:
-                                            description_id = MatterSqlClient.sql_post(
-                                                table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
-                                    else:
+                                focalboardblocks_text = MatterSqlClient.sql_get("focalboard_blocks", "board_id,type,title", f"board_id='{board['id']}' and type='text' and title='{replace_escape_characters(task_description)}'")
+                                description_values = [self.generate_id(
+                                    27), datetime.now(), self.generate_id(27), 1, "text", f"{task_description}", json.dumps({}), self.get_timestamp(), self.get_timestamp(), 0, json.dumps(None), user_id[0]['id'], "", user_id[0]['id'], board['id']]
+                                if focalboardblocks_text:
+                                    if focalboardblocks_text[0]['board_id'] != board['id'] and focalboardblocks_text[0]['type'] != "text" and focalboardblocks_text[0]['title'] != task_description:
                                         description_id = MatterSqlClient.sql_post(
-                                                table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
+                                            table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
+                                else:
+                                    description_id = MatterSqlClient.sql_post(
+                                            table_name='focalboard_blocks', attrs=keys,values=description_values, returning='id')
                                 fields = {
                                     "contentOrder": [description_id],
                                     "isTemplate": False,
