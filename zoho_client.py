@@ -80,7 +80,8 @@ class ZohoClient:
                     status_code, projects = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/")
                     if status_code != 200:
-                        return projects.json()
+                        print(f"{status_code}: Not able to fetch portal data for portal id : {portal_id}")
+                        continue
                     data= projects.json()
                     # pprint(projects['projects'])
                     for project in data['projects']:
@@ -179,7 +180,8 @@ class ZohoClient:
                             f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/users/")
                         count +=1
                         if status_code != 200:
-                            return users
+                            print(f"{status_code}: Not able to fetch projects user for project ID : {project_id}")
+                            continue
                         data = users.json()
                         # to remove spaces and add '.' as mattermost username doesnot support spaces for username
                         df = pd.DataFrame(data['users'])
@@ -225,8 +227,12 @@ class ZohoClient:
                 for project_id in project_ids:
                     status_code, tasks = self.get_project_api(
                         f"restapi/portal/{portal_id['id']}/projects/{project_id['id']}/tasks/")
+                    if status_code == 204:
+                        print(f"{status_code}: Not able to fetch project tasks for project ID : {project_id}")
+                        continue
                     if not status_code in range(200, 299):
-                        return tasks.json()
+                        print(f"{status_code}: Not able to fetch project tasks for project ID : {project_id}")
+                        continue
                     data = tasks.json()
                     for task in data.get('tasks'):
                         try:
