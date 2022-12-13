@@ -111,17 +111,17 @@ class MattermostClient:
                             else:
                                 channel_id = MatterSqlClient.sql_post(
                                         table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
-                            # channels_db_reverse = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str_reverse}' and chat_id='{chat['chat_id']}'")
-                            # if channels_db_reverse:
-                            #     if channels_db_reverse[0]['name'] != rec_ids_str and channels_db_reverse[0]['chat_id'] != chat['chat_id']:
-                            #         channel_id_reverse = MatterSqlClient.sql_post(
-                            #             table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
-                            # else:
-                            #     channel_id_reverse = MatterSqlClient.sql_post(
-                            #             table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
+                            channels_db_reverse = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str_reverse}' and chat_id='{chat['chat_id']}'")
+                            if channels_db_reverse:
+                                if channels_db_reverse[0]['name'] != rec_ids_str and channels_db_reverse[0]['chat_id'] != chat['chat_id']:
+                                    channel_id_reverse = MatterSqlClient.sql_post(
+                                        table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
+                            else:
+                                channel_id_reverse = MatterSqlClient.sql_post(
+                                        table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
 
-                            channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys)
-                            # channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
+                            # channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys)
+                            channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
                         else:
                             print(f"chat['creator_id'] {chat['creator_id']} not found in users db mattermost")
                 except Exception as e:

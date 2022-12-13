@@ -136,7 +136,7 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
 def get_timestamp() -> int:
         return int(time.time() * 1000)
 
-def channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys):
+def channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys):
     notify_props = {
             "push": "default",
             "email": "default",
@@ -156,16 +156,16 @@ def channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefren
             MatterSqlClient.sql_post(
                     table_name='channelmembers', attrs=channel_members, values=member_1)
     
-    # channel_member1_reverse = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id_reverse}' and userid='{rec_ids_reverse[0]}'")
-    # member_1_reverse = [channel_id_reverse, rec_ids_reverse[0], "",
-    #             0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
-    # if channel_member1_reverse:
-    #     if channel_member1_reverse[0]['channelid'] != channel_id_reverse and channel_member1_reverse[0]['userid'] != rec_ids_reverse[0]:
-    #         MatterSqlClient.sql_post(
-    #             table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
-    # else:
-    #     MatterSqlClient.sql_post(
-    #         table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
+    channel_member1_reverse = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id_reverse}' and userid='{rec_ids_reverse[0]}'")
+    member_1_reverse = [channel_id_reverse, rec_ids_reverse[0], "",
+                0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+    if channel_member1_reverse:
+        if channel_member1_reverse[0]['channelid'] != channel_id_reverse and channel_member1_reverse[0]['userid'] != rec_ids_reverse[0]:
+            MatterSqlClient.sql_post(
+                table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
+    else:
+        MatterSqlClient.sql_post(
+            table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
 
     channel_member2 = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id}' and userid='{rec_ids[1]}'")
     member_2 = [channel_id, rec_ids[1], "",
@@ -181,34 +181,34 @@ def channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefren
     # chdelete from channels where type='D' and id not inname='channelmembers', attrs=channel_members, values=member_2_reverse)
 
     # insert in prefrence Table
-    # prefrence_values_channel_show1 = [rec_ids[0],
-    #                                     "direct_channel_show", rec_ids[1], "true"]
-    # MatterSqlClient.sql_post(
-    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
+    prefrence_values_channel_show1 = [rec_ids[0],
+                                        "direct_channel_show", rec_ids[1], "true"]
+    MatterSqlClient.sql_post(
+        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
 
-    # prefrence_values_open_time1 = [rec_ids[0],
-    #                                 "channel_open_time", channel_id, get_timestamp()]
-    # MatterSqlClient.sql_post(
-    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1)
+    prefrence_values_open_time1 = [rec_ids[0],
+                                    "channel_open_time", channel_id, get_timestamp()]
+    MatterSqlClient.sql_post(
+        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1)
     
-    # prefrence_values_open_time1_reverse = [rec_ids_reverse[0],
-    #                                 "channel_open_time", channel_id_reverse, get_timestamp()]
-    # MatterSqlClient.sql_post(
-    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1_reverse)
+    prefrence_values_open_time1_reverse = [rec_ids_reverse[0],
+                                    "channel_open_time", channel_id_reverse, get_timestamp()]
+    MatterSqlClient.sql_post(
+        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1_reverse)
 
-    # prefrence_values_channel_show2 = [rec_ids[1],
-    #                                     "direct_channel_show", rec_ids[0], "true"]
-    # MatterSqlClient.sql_post(
-    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
+    prefrence_values_channel_show2 = [rec_ids[1],
+                                        "direct_channel_show", rec_ids[0], "true"]
+    MatterSqlClient.sql_post(
+        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
 
-    # prefrence_values_open_time2 = [rec_ids[1],
-    #                                 "channel_open_time", channel_id, get_timestamp()]
+    prefrence_values_open_time2 = [rec_ids[1],
+                                    "channel_open_time", channel_id, get_timestamp()]
 
-    # MatterSqlClient.sql_post(
-    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2)
+    MatterSqlClient.sql_post(
+        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2)
     
-    # prefrence_values_open_time2_reverse = [rec_ids_reverse[1],
-    #                                 "channel_open_time", channel_id_reverse, get_timestamp()]
+    prefrence_values_open_time2_reverse = [rec_ids_reverse[1],
+                                    "channel_open_time", channel_id_reverse, get_timestamp()]
 
-    # MatterSqlClient.sql_post(
-    #     table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2_reverse)
+    MatterSqlClient.sql_post(
+        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2_reverse)
