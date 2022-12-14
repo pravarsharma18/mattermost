@@ -324,7 +324,7 @@ class MattermostClient:
     def insert_focalblocks_view_data(self) -> None:
             keys = MatterSqlClient.get_columns("focalboard_blocks")
             boards = MatterSqlClient.sql_get(
-                'focalboard_boards', 'id,title,card_properties', "created_by!='system'")
+                'focalboard_boards', 'id,title,card_properties,created_by', "created_by!='system'")
             tasks = ZohoSqlClient.sql_get(
                 'tasks', 'project_name,status,name,created_person')
             for board in boards:
