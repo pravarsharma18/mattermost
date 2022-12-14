@@ -333,6 +333,9 @@ class MattermostClient:
                     for task in tasks:
                         try:
                             user_id = MatterSqlClient.sql_get('users', 'id', f"username like '%{remove_punctions(task['created_person'])}%'")
+                            if not user_id:
+                                user_id = [{"id":board["created_by"]}]
+
                             if user_id:
                                 focalboardblocks = MatterSqlClient.sql_get("focalboard_blocks", "board_id", f"board_id='{board['id']}'")
                                 if board['title'] == task['project_name']:
@@ -380,6 +383,9 @@ class MattermostClient:
                             assignee_ids = []
                         user_id = MatterSqlClient.sql_get(
                             'users', 'id', f"username like '%{remove_punctions(task['created_person'])}%'")
+                        if not user_id:
+                            user_id = [{"id":board["created_by"]}]
+
                         if user_id:
                             if board['title'] == task['project_name']:
                                 type_ = json.loads(task['status'])['name']
