@@ -262,7 +262,11 @@ class ZohoClient:
                     messages = response_messages.json()
                     count += 1
                     try:  # some data has no chats, to eliminate that error
+                        if not messages:
+                            a = False
+                            break
                         if (last_msg_time and len(messages) <= 1) or s !=200:
+                            a = False
                             break
                         last_msg_time = messages[-1].get('time')
                         for data in messages:
@@ -291,6 +295,7 @@ class ZohoClient:
                                 save_logs(e)
                         print(f"Saved chats for chat_id: {chat_id}")
                     except Exception as e:
+                        print(e)
                         print("Exception while saving chat data: ", chat_id)
             print(Fore.GREEN + "Messages Inserted")
 
