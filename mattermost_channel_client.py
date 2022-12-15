@@ -47,7 +47,7 @@ class MattermostClient:
                         channel_name = channel.get('name')
                         chat_id = []
                         if channel_name:
-                            chat_id = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', f"title like '%{channel_name[1:]}%'" )
+                            chat_id = ZohoSqlClient.sql_get('cliq_channels', 'chat_id', f"name like '%{channel_name}%'" )
                         if chat_id:                        
                             creator_id = MatterSqlClient.sql_get(
                                 "users", "id", f"username='{remove_punctions(channel['creator_name'])}'")
@@ -121,7 +121,10 @@ class MattermostClient:
                                         table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
 
                             # channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys)
-                            channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
+                            try:
+                                channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
+                            except:
+                                pass
                         else:
                             print(f"chat['creator_id'] {chat['creator_id']} not found in users db mattermost")
                 except Exception as e:

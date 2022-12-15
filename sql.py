@@ -44,32 +44,38 @@ class ZohoSqlClient:
 
     @classmethod
     def sql_post(cls, **kwargs):
-        returning = ""
-        if not kwargs.get('table_name'):
-            print("table_name required")
-            return
-        if not kwargs.get('attrs'):
-            print("attrs required")
-            return
-        if not kwargs.get('values'):
-            print("values required")
-            return
-        if kwargs.get('returning'):
-            returning = f"RETURNING {kwargs.get('returning')}"
-
-        keys = ",".join(kwargs['attrs'])
-        keys = '"' + keys.replace(',', '","') + '"'
-        sql = f"INSERT INTO {kwargs['table_name']} ({keys}) VALUES ({'s,'.join('%' * len(keys.split(','))) + 's'}) {returning}"
-        val = (kwargs['values'])
         try:
-            mycursor = cls.get_cursor()
-            mycursor.execute(sql, val)
-            cls.zohomydb.commit()
+            returning = ""
+            if not kwargs.get('table_name'):
+                print("table_name required")
+                return
+            if not kwargs.get('attrs'):
+                print("attrs required")
+                return
+            if not kwargs.get('values'):
+                print("values required")
+                return
             if kwargs.get('returning'):
-                id = mycursor.fetchone()[0]
-                return id
+                returning = f"RETURNING {kwargs.get('returning')}"
+
+            keys = ",".join(kwargs['attrs'])
+            keys = '"' + keys.replace(',', '","') + '"'
+            sql = f"INSERT INTO {kwargs['table_name']} ({keys}) VALUES ({'s,'.join('%' * len(keys.split(','))) + 's'}) {returning}"
+            val = (kwargs['values'])
+            try:
+                mycursor = cls.get_cursor()
+                mycursor.execute(sql, val)
+                cls.zohomydb.commit()
+                if kwargs.get('returning'):
+                    id = mycursor.fetchone()[0]
+                    return id
+            except (Exception, psycopg2.Error) as error:
+                print("Failed to insert record into mobile table", error)
         except (Exception, psycopg2.Error) as error:
-            print("Failed to insert record into mobile table", error)
+            print(f"Failed to get record from {table_name} table in zoho db", error)
+        finally:
+            if cls.zohomydb is not None:
+                cls.zohomydb.close()
     
     @classmethod
     def sql_update(cls, table_name, set, where="") -> None:
@@ -164,29 +170,36 @@ class MatterSqlClient:
 
     @classmethod
     def sql_post(cls, **kwargs) -> None or str:
-        mycursor = cls.get_cursor()
-        returning = ""
-        if not kwargs.get('table_name'):
-            print("table_name required")
-            return
-        if not kwargs.get('attrs'):
-            print("attrs required")
-            return
-        if not kwargs.get('values'):
-            print("values required")
-            return
-        if kwargs.get('returning'):
-            returning = f"RETURNING {kwargs.get('returning')}"
-        keys = ",".join(kwargs['attrs'])
-        keys = '"' + keys.replace(',', '","') + '"'
-        sql = f"INSERT INTO {kwargs['table_name']} ({keys}) VALUES ({'s,'.join('%' * len(keys.split(','))) + 's'}) {returning}"
-        val = (kwargs['values'])
+        try:
+            mycursor = cls.get_cursor()
+            returning = ""
+            if not kwargs.get('table_name'):
+                print("table_name required")
+                return
+            if not kwargs.get('attrs'):
+                print("attrs required")
+                return
+            if not kwargs.get('values'):
+                print("values required")
+                return
+            if kwargs.get('returning'):
+                returning = f"RETURNING {kwargs.get('returning')}"
+            keys = ",".join(kwargs['attrs'])
+            keys = '"' + keys.replace(',', '","') + '"'
+            sql = f"INSERT INTO {kwargs['table_name']} ({keys}) VALUES ({'s,'.join('%' * len(keys.split(','))) + 's'}) {returning}"
+            val = (kwargs['values'])
 
-        mycursor.execute(sql, val)
-        cls.mattermydb.commit()
-        if kwargs.get('returning'):
-            id = mycursor.fetchone()[0]
-            return id
+            mycursor.execute(sql, val)
+            cls.mattermydb.commit()
+            if kwargs.get('returning'):
+                id = mycursor.fetchone()[0]
+                return id
+        except (Exception, psycopg2.Error) as error:
+            print(f"Failed to get record from {kwargs['table_name']} table in mattermost db", error)
+        finally:
+            if cls.mattermydb is not None:
+                cls.mattermydb.close()
+
 
     @classmethod
     def sql_update(cls, table_name, set, where="") -> None:
