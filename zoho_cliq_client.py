@@ -247,6 +247,7 @@ class ZohoClient:
             for chat_id in chat_ids:
                 # message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages'
                 last_msg_time = ""
+                a = True
                 while a:
                     if last_msg_time:
                         message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages?fromtime={last_msg_time}'
