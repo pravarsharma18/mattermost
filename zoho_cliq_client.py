@@ -264,10 +264,10 @@ class ZohoClient:
                     try:  # some data has no chats, to eliminate that error
                         if not messages:
                             a = False
-                            break
+                            continue
                         if (last_msg_time and len(messages) <= 1) or s !=200:
                             a = False
-                            break
+                            continue
                         last_msg_time = messages[-1].get('time')
                         for data in messages:
                             try:
