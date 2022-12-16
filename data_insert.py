@@ -6,12 +6,16 @@ from decouple import config
 from datetime import datetime
 import time
 from sql import MatterSqlClient
-from utils import remove_punctions, generate_id, save_logs
-from zoho_client import ZohoClient
+from utils import check_token_revoke_cliq, remove_punctions, generate_id, save_logs
+from zoho_cliq_client import ZohoClient
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 mattermost_base_path = config('MATTERMOST_PATH')
 # {mattermost_base_path}
-def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
+def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, img_counter):
+    access_token = os.environ.get('ZOHO_CLIQ_API_KEY')
     try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
@@ -33,12 +37,31 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
                 {"disable_group_highlight": True}), "", json.dumps([]), json.dumps([image_fileinfo_id]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
             pathlib.Path(file_path).mkdir(
                 parents=True, exist_ok=True)
-
+            
+            if img_counter == 30:
+                img_counter = 1
+                print("Files api for images throttling api please wait for 120 seconds.")
+                time.sleep(120)
+           
             r = requests.get(
                 f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-                    "Authorization": f"Zoho-oauthtoken {ZohoClient().access_token}",
+                    "Authorization": f"Zoho-oauthtoken {access_token}",
                     "Content-Type": 'application/json'
-                }).content
+                })
+            
+            if r.status_code == 401:
+                if r.json()['code'] == "oauthtoken_invalid":
+                    new_access_token = check_token_revoke_cliq(r)
+                    os.environ.pop('ZOHO_CLIQ_API_KEY')
+                    os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
+                    r = requests.get(
+                        f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
+                            "Authorization": f"Zoho-oauthtoken {new_access_token}",
+                            "Content-Type": 'application/json'
+                        })
+            
+            r = r.content
+
             with open(f"{file_path}{file['name']}", 'wb') as handler:
                 handler.write(r)
             im = Image.open(f"{file_path}{file['name']}")
@@ -69,7 +92,8 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys):
         save_logs(e)
 
 
-def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type):
+def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type, xlsx_counter):
+    access_token = os.environ.get('ZOHO_CLIQ_API_KEY')
     try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
@@ -107,11 +131,30 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
             pathlib.Path(file_path).mkdir(
                 parents=True, exist_ok=True)
             
+            if xlsx_counter == 30:
+                xlsx_counter = 1
+                print("Files api for xlsx throttling api please wait for 120 seconds.")
+                time.sleep(120)
+
             r = requests.get(
                 f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-                    "Authorization": f"Zoho-oauthtoken {ZohoClient().access_token}",
+                    "Authorization": f"Zoho-oauthtoken {access_token}",
                     "Content-Type": 'application/json'
-                }).content
+                })
+            
+            if r.status_code == 401:
+                if r.json()['code'] == "oauthtoken_invalid":
+                    new_access_token = check_token_revoke_cliq(r)
+                    os.environ.pop('ZOHO_CLIQ_API_KEY')
+                    os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
+                    r = requests.get(
+                        f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
+                            "Authorization": f"Zoho-oauthtoken {new_access_token}",
+                            "Content-Type": 'application/json'
+                        })
+            
+            r = r.content
+
             with open(f"{file_path}{file['name']}", 'wb') as f:
                 f.write(r)
             fileinfo_db = MatterSqlClient.sql_get("fileinfo", "name,createat,creatorid", f"name='{file['name']}' and createat='{zoho_cliq_message['time']}' and creatorid='{sender_id[0]['id']}'")
