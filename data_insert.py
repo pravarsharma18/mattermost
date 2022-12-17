@@ -60,6 +60,10 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
                             "Content-Type": 'application/json'
                         })
             
+            if r.status_code == 400:
+                print(f"Not able to dowanload file: {file['id']}")
+                return
+
             r = r.content
 
             with open(f"{file_path}{file['name']}", 'wb') as handler:
@@ -153,6 +157,10 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
                             "Content-Type": 'application/json'
                         })
             
+            if r.status_code == 400:
+                print(f"Not able to dowanload file: {file['id']}")
+                return
+
             r = r.content
 
             with open(f"{file_path}{file['name']}", 'wb') as f:
