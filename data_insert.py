@@ -15,7 +15,7 @@ load_dotenv()
 mattermost_base_path = config('MATTERMOST_PATH')
 # {mattermost_base_path}
 def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, img_counter):
-    access_token = os.environ.get('ZOHO_CLIQ_API_KEY')
+    access_token = config['ZOHO_CLIQ_API_KEY']
     try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
@@ -52,8 +52,8 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
             if r.status_code == 401:
                 if r.json()['code'] == "oauthtoken_invalid":
                     new_access_token = check_token_revoke_cliq(r)
-                    os.environ.pop('ZOHO_CLIQ_API_KEY')
-                    os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
+                    # os.environ.pop('ZOHO_CLIQ_API_KEY')
+                    # os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
                     r = requests.get(
                         f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
                             "Authorization": f"Zoho-oauthtoken {new_access_token}",
@@ -93,7 +93,7 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
 
 
 def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type, xlsx_counter):
-    access_token = os.environ.get('ZOHO_CLIQ_API_KEY')
+    access_token = config['ZOHO_CLIQ_API_KEY']
     try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
@@ -145,8 +145,8 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
             if r.status_code == 401:
                 if r.json()['code'] == "oauthtoken_invalid":
                     new_access_token = check_token_revoke_cliq(r)
-                    os.environ.pop('ZOHO_CLIQ_API_KEY')
-                    os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
+                    # os.environ.pop('ZOHO_CLIQ_API_KEY')
+                    # os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
                     r = requests.get(
                         f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
                             "Authorization": f"Zoho-oauthtoken {new_access_token}",
