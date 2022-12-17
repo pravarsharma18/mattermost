@@ -15,7 +15,7 @@ load_dotenv()
 mattermost_base_path = config('MATTERMOST_PATH')
 # {mattermost_base_path}
 def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, img_counter):
-    access_token = config['ZOHO_CLIQ_API_KEY']
+    access_token = config('ZOHO_CLIQ_API_KEY')
     try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
@@ -93,7 +93,7 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
 
 
 def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, type, xlsx_counter):
-    access_token = config['ZOHO_CLIQ_API_KEY']
+    access_token = config('ZOHO_CLIQ_API_KEY')
     try:
         timestamp = int(zoho_cliq_message['time'])
         date_folder = datetime.strftime(
