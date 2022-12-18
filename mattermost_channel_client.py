@@ -44,18 +44,23 @@ class MattermostClient:
             for team in teams:
                 for channel in channels:
                     try:
-                        channel_name = channel.get('name')
+                        display_channel_name = channel.get('name')
+                        channel_name = remove_punctions(display_channel_name).replace(".", "-")
                         chat_id = []
                         if channel_name:
-                            chat_id = ZohoSqlClient.sql_get('cliq_channels', 'chat_id', f"name like '%{channel_name}%'" )
+                            chat_id = ZohoSqlClient.sql_get('cliq_channels', 'chat_id', f"name like '%{display_channel_name}%'" )
                         if chat_id:                        
                             creator_id = MatterSqlClient.sql_get(
                                 "users", "id", f"username='{remove_punctions(channel['creator_name'])}'")
                             if creator_id:
-                                values = [self.generate_id(26), self.get_timestamp_from_date(channel.get('creation_time')), self.get_timestamp_from_date(channel.get('creation_time')), 0, team['id'],"O", channel['name'], channel['name'].split('#')[1], "", "", self.get_timestamp_from_date(channel.get('creation_time')), channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
-                                channels = MatterSqlClient.sql_get("channels", "teamid,displayname", f"teamid='{team['id']}' and displayname='{channel['name']}'")
+                                values = [
+                                    self.generate_id(26), self.get_timestamp_from_date(channel.get('creation_time')), 
+                                    self.get_timestamp_from_date(channel.get('creation_time')), 0, team['id'],"O", display_channel_name, 
+                                    channel_name, "", "", self.get_timestamp_from_date(channel.get('creation_time')), 
+                                    channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0, chat_id[0]['chat_id']]
+                                channels = MatterSqlClient.sql_get("channels", "teamid,name", f"teamid='{team['id']}' and name='{channel_name}'")
                                 if channels:
-                                    if channels[0]['teamid'] != team['id'] and channels[0]['displayname'] != channel['name']:
+                                    if channels[0]['teamid'] != team['id'] and channels[0]['name'] != channel_name:
                                         MatterSqlClient.sql_post(
                                             table_name='channels', attrs=keys, values=values)
                                 else:
@@ -90,17 +95,21 @@ class MattermostClient:
                         else:
                             print(f"{recipient_summary} is not found in users db mattermost")
                     if len(rec_ids) == 2:
-                        rec_ids = rec_ids
+                        # rec_ids = rec_ids
                         rec_ids_reverse = rec_ids[::-1]
                         rec_ids_str = "__".join(rec_ids)
                         rec_ids_str_reverse = "__".join(rec_ids_reverse)
                         creator_id = MatterSqlClient.sql_get(
                             "users", "id", f"email='{chat['creator_id']}'")
                         if creator_id:
-                            channel_values = [self.generate_id(26), int(float(chat['creation_time'])), int(float(chat['last_modified_time'])), 0, "",
-                                            "D", "", rec_ids_str, "", "", int(float(chat['last_modified_time'])), 0, 0, creator_id[0]['id'], json.dumps(False), 0, int(float(chat['last_modified_time'])), chat['chat_id']]
-                            channel_values_reverse = [self.generate_id(26), int(float(chat['creation_time'])), int(float(chat['last_modified_time'])), 0, "",
-                                            "D", "", rec_ids_str_reverse, "", "", int(float(chat['last_modified_time'])), 0, 0, creator_id[0]['id'], json.dumps(False), 0, int(float(chat['last_modified_time'])), chat['chat_id']]
+                            channel_values = [
+                                self.generate_id(26), int(float(chat['creation_time'])), int(float(chat['last_modified_time'])), 0, "",
+                                "D", "", rec_ids_str, "", "", int(float(chat['last_modified_time'])), 0, 0, creator_id[0]['id'], 
+                                json.dumps(False), 0, int(float(chat['last_modified_time'])), chat['chat_id']]
+                            channel_values_reverse = [
+                                self.generate_id(26), int(float(chat['creation_time'])), int(float(chat['last_modified_time'])), 0, "",
+                                "D", "", rec_ids_str_reverse, "", "", int(float(chat['last_modified_time'])), 0, 0, creator_id[0]['id'], 
+                                json.dumps(False), 0, int(float(chat['last_modified_time'])), chat['chat_id']]
 
                             channels_db = MatterSqlClient.sql_get("channels", "name,chat_id", f"name='{rec_ids_str}'")
                             channel_id = ""
@@ -149,7 +158,7 @@ class MattermostClient:
                 users = ZohoSqlClient.sql_get(
                     'cliq_channel_members', 'email_id,user_role', f"channel_id='{zoho_channel['channel_id']}'")  # only channel members
                 channel = MatterSqlClient.sql_get(
-                    'channels', "id", f"displayname='{zoho_channel['name']}'")  # getting the mattermost channels id. this is to prevent duplicate values
+                    'channels', "id", f"name='{remove_punctions(zoho_channel['name']).replace('.', '-')}'")  # getting the mattermost channels id. this is to prevent duplicate values
                 if channel:
                     for user in users:
                         try:
