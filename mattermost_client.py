@@ -145,7 +145,18 @@ class MattermostClient:
             except Exception as e:
                 print(f"Exception saving team data: {portal['name']}")
                 save_logs(e)
+        
+        ## Team for trooinbound
+        # dipen.patel@trootech.com
+        portal_name = MatterSqlClient.sql_get("teams", "name", f"name='trooinbound'")
+        p_name = "TrooInBound"
+        values = [self.generate_id(
+                    26), self.get_timestamp(), self.get_timestamp(), 0, p_name, p_name.lower(), "", f"dipen.patel@trootech.com", "O", "", "", self.generate_id(32), json.dumps(None), json.dumps(False), 0, json.dumps(False), json.dumps(False)]
 
+        if not portal_name:
+            MatterSqlClient.sql_post(
+                table_name="teams", attrs=keys, values=values)
+    
         print(Fore.GREEN + "## Inserted Teams data ##")
 
     def create_channel(self) -> None:
@@ -157,7 +168,7 @@ class MattermostClient:
                         'header', 'purpose', 'lastpostat', 'totalmsgcount', 'extraupdateat', 'creatorid', 'totalmsgcountroot', 'lastrootpostat']
                 values = [self.generate_id(26), self.get_timestamp(), self.get_timestamp(), 0, team['id'],
                         "O", "Town Square", "town-square", "", "", self.get_timestamp(), 0, 0, "", 0, self.get_timestamp()]
-                channel_name = MatterSqlClient.sql_get("channels", "name,teamid", f"name='town-square'")
+                channel_name = MatterSqlClient.sql_get("channels", "name,teamid", f"name='town-square' and teamid='{team['id']}'")
                 if channel_name:
                     if channel_name[0].get("teamid") != team['id'] and channel_name[0].get("name") != 'town-square':
                         MatterSqlClient.sql_post(
@@ -171,10 +182,18 @@ class MattermostClient:
         print(Fore.GREEN + "## Channel Created ##")
 
     def insert_channel_members_data(self) -> None:
+            team_trooinbound = MatterSqlClient.sql_get(
+                    "teams", "id", "name='trooinbound'")
+            team_trootech = MatterSqlClient.sql_get(
+                    "teams", "id", "name='trootech'")
+            channels_trootech = MatterSqlClient.sql_get(
+                "channels", "id", f"name='town-square' and teamid='{team_trootech[0]['id']}'")
+            channels_trooinbound = MatterSqlClient.sql_get(
+                "channels", "id", f"name='town-square' and teamid='{team_trooinbound[0]['id']}'")
             channels = MatterSqlClient.sql_get(
-                "channels", "id", "name='town-square'")
+                "channels", "id", f"name='town-square'")
             users = MatterSqlClient.sql_get(
-                'users', 'id,roles,username', "username not in ('channelexport','system-bot','boards','playbooks','appsbot','feedbackbot')")
+                'users', 'id,roles,username,email', "username not in ('channelexport','system-bot','boards','playbooks','appsbot','feedbackbot')")
             keys = MatterSqlClient.get_columns("channelmembers")
             notify_props = {
                 "push": "default",
@@ -186,15 +205,27 @@ class MattermostClient:
             for channel in channels:
                 for user in users:
                     try:
-                        channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel['id']}' and userid='{user['id']}'")
                         if "system_admin" in user['roles']:
                             schemeadmin = json.dumps(True)
                         else:
                             schemeadmin = json.dumps(False)
+                        
                         values = [channel['id'], user['id'], "",
-                                0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+                                    0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+
+                        if "trooinbound" in user['email']:
+                            values = [channels_trooinbound[0]['id'], user['id'], "",
+                                    0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+
+                            channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channels_trooinbound[0]['id']}' and userid='{user['id']}'")
+                        else:
+                            values = [channels_trootech[0]['id'], user['id'], "",
+                                    0, 0, 0, json.dumps(notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
+
+                            channel_members = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channels_trootech[0]['id']}' and userid='{user['id']}'")
+
                         if channel_members:
-                            if channel_members[0].get("channelid") != channel['id'] and channel_members[0].get("userid") != user['id']:
+                            if channel_members[0].get("channelid") != (channels_trootech[0]['id'] or channels_trooinbound[0]['id']) and channel_members[0].get("userid") != user['id']:
                                 MatterSqlClient.sql_post(
                                     table_name="channelmembers", attrs=keys, values=values)
                         else:
@@ -206,7 +237,7 @@ class MattermostClient:
             print(Fore.GREEN + "## Channels data saved ##")
 
     def insert_team_members_data(self) -> None:
-            teams = MatterSqlClient.sql_get('teams', 'id')
+            teams = MatterSqlClient.sql_get('teams', 'id', "name='trootech'")
             users = ZohoSqlClient.sql_get(
                 'portal_users', 'id,role_name,email')
             keys = MatterSqlClient.get_columns("teammembers")
@@ -220,7 +251,7 @@ class MattermostClient:
                         user_id = MatterSqlClient.sql_get(
                             'users', 'id', f"email='{user['email']}'")
                         values = [team['id'], user_id[0]['id'], "", 0,
-                                json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
+                                    json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
 
                         team_members = MatterSqlClient.sql_get("teammembers", "teamid,userid", f"teamid='{team['id']}' and userid='{user_id[0]['id']}'")
 
@@ -235,6 +266,37 @@ class MattermostClient:
                         print(f"Exception saving team data: {user}")
                         save_logs(e)
             print(Fore.GREEN + "## Inserted Team Members data ##")
+        
+    def insert_trooinbound_team_members_data(self) -> None:
+            teams = MatterSqlClient.sql_get('teams', 'id', "name='trooinbound'")
+            users = MatterSqlClient.sql_get('users', 'id,roles,email')
+            keys = MatterSqlClient.get_columns("teammembers")
+            for team in teams:
+                for user in users:
+                    if "trooinbound" in user['email']:
+                        try:
+                            if user['roles'] == "system_user system_admin":
+                                schemeadmin = json.dumps(True)
+                            else:
+                                schemeadmin = json.dumps(False)
+                            user_id = MatterSqlClient.sql_get(
+                                'users', 'id', f"email='{user['email']}'")
+                            values = [team['id'], user_id[0]['id'], "", 0,
+                                        json.dumps(True), schemeadmin, json.dumps(False), self.get_timestamp()]
+
+                            team_members = MatterSqlClient.sql_get("teammembers", "teamid,userid", f"teamid='{team['id']}' and userid='{user_id[0]['id']}'")
+
+                            if team_members:
+                                if team_members[0].get("teamid") != team['id'] and team_members[0].get("userid") != user['id']:
+                                    MatterSqlClient.sql_post(
+                                        table_name="teammembers", attrs=keys, values=values)
+                            else:
+                                MatterSqlClient.sql_post(
+                                        table_name="teammembers", attrs=keys, values=values)
+                        except Exception as e:
+                            print(f"Exception saving team data: {user}")
+                            save_logs(e)
+            print(Fore.GREEN + "## Inserted TrooInBound Team Members data ##")
 
     def insert_focalboard_boards_data(self) -> None:
             keys = MatterSqlClient.get_columns("focalboard_boards")
@@ -457,6 +519,8 @@ class MattermostClient:
         self.insert_channel_members_data()
         # time.sleep(1)
         self.insert_team_members_data()
+
+        self.insert_trooinbound_team_members_data()
         # time.sleep(1)
         self.insert_focalboard_boards_data()
         # time.sleep(1)
