@@ -179,9 +179,19 @@ class ZohoClient:
             # to remove spaces and add '.' as mattermost username doesnot support spaces for username
             df = pd.DataFrame(chats)
             df['title'] = df['title'].apply(lambda x: remove_punctions(x))
+            
             df['last_modified_time'] = df['last_modified_time'].astype('object')
+            df['participant_count'] = df['participant_count'].astype('object')
+            df['total_message_count'] = df['total_message_count'].astype('object')
+            
             df['last_modified_time'] = df['last_modified_time'].fillna(0)
+            df['participant_count'] = df['participant_count'].fillna(0)
+            df['total_message_count'] = df['total_message_count'].fillna(0)
+            
             df['last_modified_time'] = df['last_modified_time'].astype('int')
+            df['participant_count'] = df['participant_count'].astype('int')
+            df['total_message_count'] = df['total_message_count'].astype('int')
+            
             df['chat_id'] = df['chat_id'].fillna(0)
             df = df.fillna("")
             df = df.where(df['chat_id'] != 0)
