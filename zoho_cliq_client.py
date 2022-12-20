@@ -188,6 +188,9 @@ class ZohoClient:
             df['participant_count'] = df['participant_count'].fillna(0)
             df['total_message_count'] = df['total_message_count'].fillna(0)
             
+            df['participant_count'] = df['participant_count'].astype('float')
+            df['total_message_count'] = df['total_message_count'].astype('float')
+
             df['last_modified_time'] = df['last_modified_time'].astype('int')
             df['participant_count'] = df['participant_count'].astype('int')
             df['total_message_count'] = df['total_message_count'].astype('int')
