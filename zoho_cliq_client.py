@@ -174,35 +174,16 @@ class ZohoClient:
             with open('chats.csv', 'w') as f:
                 f.writelines(data)
 
-            chats = pd.read_csv('chats.csv')
-            
-            # to remove spaces and add '.' as mattermost username doesnot support spaces for username
-            df = pd.DataFrame(chats)
-            df['title'] = df['title'].apply(lambda x: remove_punctions(x))
-            
-            df['last_modified_time'] = df['last_modified_time'].astype('object')
-            df['participant_count'] = df['participant_count'].astype('object')
-            df['total_message_count'] = df['total_message_count'].astype('object')
-            
-            df['last_modified_time'] = df['last_modified_time'].fillna(0)
-            df['participant_count'] = df['participant_count'].fillna(0)
-            df['total_message_count'] = df['total_message_count'].fillna(0)
-            
-            df['participant_count'] = df['participant_count'].astype('float')
-            df['total_message_count'] = df['total_message_count'].astype('float')
 
-            df['last_modified_time'] = df['last_modified_time'].astype('int')
-            df['participant_count'] = df['participant_count'].astype('int')
-            df['total_message_count'] = df['total_message_count'].astype('int')
-            
-            df['chat_id'] = df['chat_id'].fillna(0)
-            df = df.fillna("")
-            df = df.where(df['chat_id'] != 0)
-            df = df.dropna(how='all')
-
-            chats = df.to_dict('records')
+            f = open('chats.csv', 'r')
+            chats = csv.DictReader(f)
             count = 1
             for chat in chats:
+                if self.token_field in chat["title"]:
+                    next_token = chat["title"].split("=")[1]
+                    break
+
+                chat["title"] = remove_punctions(chat["title"]) if chat["title"] else ""
                 try:
                     keys = list(chat.keys())
                     columns = ZohoSqlClient.get_columns("cliq_chats")
@@ -243,14 +224,9 @@ class ZohoClient:
                     print(f"Exception in getting channel Members from api : {chat['chat_id']}")
                     save_logs(e)
 
-            with open("chats.csv", 'r') as file:
-                tokn = file.readlines()[-1]
-                if self.token_field in tokn:
-                    next_token = tokn.split("=")[1]
-                else:
-                    print("chat inelse")
-                    a = False
-                    break
+            if chats.line_num == 1:
+                a = False
+            f.close()
         print(Fore.GREEN + "Conversations Inserted")
 
     def bulk_messages(self):
