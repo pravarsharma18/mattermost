@@ -80,14 +80,22 @@ class ZohoClient:
 
     def bulk_channels(self):
         a = True
+        token = ""
+        count = 1
         while a:
-            token = ""
+            if count == 4:
+                count = 1
+                print("Channel Api is throttled, wait for 30 seconds....")
+                time.sleep(30)
+                
             if not token:
                 url = 'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id'
             else:
-                url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id?next_token={token}'
+                url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id&next_token={token}'
             s, channels = self.get_chat_api(url)
             
+            print(f"Channel url: {url}, Status code: {s}")
+            count += 1
             data = channels.json()
             # print(channels)
             if data.get('channels'):
@@ -122,10 +130,18 @@ class ZohoClient:
     def get_channel_members(self):
         keys = ZohoSqlClient.get_columns('cliq_channel_members')
         channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id')
+
+        count = 1
         for channel in channels:
             try:
+                if count == 4:
+                    count = 1
+                    print("Channel member Api is throttled, wait for 30 seconds....")
+                    time.sleep(30)
                 s, member = self.get_chat_api(
                     f"api/v2/channels/{channel['channel_id']}/members")
+                print(f"Channel member for ID: {channel['channel_id']}, Status code: {s}")
+                count += 1
                 data = member.json()
                 members = data.get('members')
                 if members:
@@ -160,7 +176,12 @@ class ZohoClient:
     def bulk_conversation(self):
         a = True
         next_token=""
+        chat_count = 1
         while a:
+            if chat_count == 4:
+                chat_count = 1
+                print("Chat's Api is throttled, wait for 30 seconds....")
+                time.sleep(30)
             if next_token:
                 chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time&next_token={next_token}'
             else:
@@ -168,6 +189,8 @@ class ZohoClient:
             s, response_chats = self.get_chat_api(
                 chat_url, header={"Content-Type": 'text/csv'})
             
+            print(f"Chat URL: {chat_url}, Status Code: {s}")
+            chat_count += 1
             data = response_chats.text
             # s, data = self.get_chat_api(
             #     'api/v2/chats')
@@ -197,6 +220,7 @@ class ZohoClient:
                     s, response_chat_members = self.get_chat_api(
                         f'maintenanceapi/v2/chats/{chat["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
                     
+                    print(f"Chat ID: {chat['chat_id']}, Chat message Status Code: {s}")
                     chat_members = response_chat_members.text
                     count += 1
                     v = [i for i in chat.values()]
@@ -228,6 +252,59 @@ class ZohoClient:
                 a = False
             f.close()
         print(Fore.GREEN + "Conversations Inserted")
+
+    def add_channels_to_chats(self):
+        channels = ZohoSqlClient.sql_get('cliq_channels', 'name,channel_id,chat_id,total_message_count,participant_count,creation_time,last_modified_time,creator_id')
+
+        count = 1
+        for channel in channels:
+            try:
+                if channel["chat_id"]:
+                    user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{channel['creator_id']}'")
+                    data = {
+                        "recipients_summary": "[]",
+                        "title": remove_punctions(channel["name"]),
+                        "chat_id": channel["chat_id"],
+                        "participant_count": channel["participant_count"] or 0,
+                        "total_message_count": channel["total_message_count"] or 0,
+                        "creator_id": user_email[0].get("email_id", ""),
+                        "creation_time": channel["creation_time"],
+                        "last_modified_time": channel["last_modified_time"],
+                    }
+
+                    if count == 12:
+                        count = 1
+                        print("Members's Api is throttled, wait for 30 seconds....")
+                        time.sleep(30)
+                    
+                    s, response_chat_members = self.get_chat_api(
+                        f'maintenanceapi/v2/chats/{channel["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
+                    
+                    print(f"Chat ID: {channel['chat_id']}, Chat message Status Code: {s}")
+                    chat_members = response_chat_members.text
+                    count += 1
+
+                    if "html" not in chat_members:
+                        data["recipients_summary"] = json.dumps(chat_members.split()[1:])
+                    
+                    db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{channel['chat_id']}'")
+                    if db_cliq_chats:
+                        if db_cliq_chats[0]['chat_id'] != channel['chat_id']:
+                            ZohoSqlClient.sql_post(
+                                table_name="cliq_chats", attrs=list(data.keys()), values=list(data.values()))
+                        else:
+                            set_value = ""
+                            for key, value in data.items():
+                                set_value += f"{key} = '{value}' ,"
+                            set_value = set_value[:-1] # to remove last ','
+                            ZohoSqlClient.sql_update(table_name="cliq_chats", set=set_value, where=f"chat_id = '{channel['chat_id']}'")
+                    else:
+                        ZohoSqlClient.sql_post(
+                            table_name="cliq_chats", attrs=list(data.keys()), values=list(data.values()))
+            except Exception as e:
+                print(f"Exception in getting channel Members from api : {channel['channel_id']}")
+                save_logs(e)
+        print(Fore.GREEN + "Channel chats Saved")
 
     def bulk_messages(self):
             chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
@@ -300,6 +377,7 @@ class ZohoClient:
         self.get_channel_members()
         # time.sleep(1)
         self.bulk_conversation()
+        self.add_channels_to_chats()
         # time.sleep(1)
         self.bulk_messages()
 
