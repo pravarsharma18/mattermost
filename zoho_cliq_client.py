@@ -1,5 +1,6 @@
 import requests
 from pprint import pprint
+from datetime import datetime
 import json
 from colorama import Fore
 from sql import ZohoSqlClient
@@ -16,6 +17,14 @@ class ZohoClient:
     zoho_chat_base_url = "https://cliq.zoho.in/"
     access_token = config('ZOHO_CLIQ_API_KEY')
     token_field = "next_token"
+
+    def get_timestamp_from_date(self, date) -> int:
+        if date != 'NaN':
+            date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z")
+            tuple = date.timetuple()
+            return int(time.mktime(tuple) * 1000)
+        else:
+            return int(time.time() * 1000)
 
     def get_chat_api(self, path, header={}) -> Tuple[int, dict]:
         url = f"{self.zoho_chat_base_url}{path}"
@@ -268,8 +277,8 @@ class ZohoClient:
                         "participant_count": channel["participant_count"] or 0,
                         "total_message_count": channel["total_message_count"] or 0,
                         "creator_id": user_email[0].get("email_id", ""),
-                        "creation_time": channel["creation_time"],
-                        "last_modified_time": channel["last_modified_time"],
+                        "creation_time": self.get_timestamp_from_date(channel["creation_time"]),
+                        "last_modified_time": self.get_timestamp_from_date(channel["last_modified_time"]),
                     }
 
                     if count == 12:
