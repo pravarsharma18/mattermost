@@ -15,6 +15,10 @@ class DeleteMattermostTables:
     def truncate_fileinfo(self) -> None:
         MatterSqlClient.sql_delete("fileinfo")
         print(Fore.RED + "**Fileinfo Deleted**")
+    
+    def truncate_preference(self) -> None:
+        MatterSqlClient.sql_delete("preferences")
+        print(Fore.RED + "**Preferences Deleted**")
 
     def remove_channel_extracolumn(self):
         try:
@@ -29,6 +33,7 @@ class DeleteMattermostTables:
         self.truncate_posts()
         self.truncate_fileinfo()
         self.remove_channel_extracolumn()
+        self.truncate_preference()
 
 if __name__ == '__main__':
     a = DeleteMattermostTables().main()

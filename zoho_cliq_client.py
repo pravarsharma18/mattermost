@@ -257,7 +257,7 @@ class ZohoClient:
                     print(f"Exception in getting channel Members from api : {chat['chat_id']}")
                     save_logs(e)
 
-            if chats.line_num == 1:
+            if chats.line_num == 1 or chats.line_num == 0:
                 a = False
             f.close()
         print(Fore.GREEN + "Conversations Inserted")

@@ -49,6 +49,10 @@ class DeleteMattermostTables:
     def truncate_fileinfo(self) -> None:
         MatterSqlClient.sql_delete("fileinfo")
         print(Fore.RED + "**Fileinfo Deleted**")
+    
+    def truncate_preferences(self) -> None:
+        MatterSqlClient.sql_delete("preferences")
+        print(Fore.RED + "**Preferences Deleted**")
 
     def main(self) -> None:
         self.truncate_users()
@@ -61,6 +65,7 @@ class DeleteMattermostTables:
         self.truncate_focalboard_boards()
         self.truncate_posts()
         self.truncate_fileinfo()
+        self.truncate_preferences()
 
 
 class DeleteZohoTables:
@@ -120,5 +125,5 @@ class DeleteZohoTables:
 if __name__ == '__main__':
     print(Fore.YELLOW+"\n<========Truncate Mattermost Tables=========>\n")
     DeleteMattermostTables().main()
-    print(Fore.YELLOW+"\n<========Truncate Zoho Tables=========>\n")
-    DeleteZohoTables().main()
+    # print(Fore.YELLOW+"\n<========Truncate Zoho Tables=========>\n")
+    # DeleteZohoTables().main()

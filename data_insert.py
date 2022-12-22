@@ -52,8 +52,8 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
             if r.status_code == 401:
                 if r.json()['code'] == "oauthtoken_invalid":
                     new_access_token = check_token_revoke_cliq(r)
-                    # os.environ.pop('ZOHO_CLIQ_API_KEY')
-                    # os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
+                    os.environ.pop('ZOHO_CLIQ_API_KEY')
+                    os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
                     r = requests.get(
                         f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
                             "Authorization": f"Bearer {new_access_token}",
@@ -149,8 +149,8 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
             if r.status_code == 401:
                 if r.json()['code'] == "oauthtoken_invalid":
                     new_access_token = check_token_revoke_cliq(r)
-                    # os.environ.pop('ZOHO_CLIQ_API_KEY')
-                    # os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
+                    os.environ.pop('ZOHO_CLIQ_API_KEY')
+                    os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
                     r = requests.get(
                         f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
                             "Authorization": f"Bearer {new_access_token}",

@@ -249,11 +249,14 @@ class MatterSqlClient:
         cls.mattermydb.commit()
 
     @classmethod
-    def raw_query(cls, query):
+    def raw_query(cls, query, type=None):
         mycursor = cls.get_cursor()
         
         mycursor.execute(query)
         cls.mattermydb.commit()
+        if type =="get":
+            result = mycursor.fetchall()
+            return result
 
     @classmethod
     def get_columns(cls, table_name) -> list:

@@ -7,7 +7,7 @@ import string
 from data_insert import channel_extras, image_data, xlsx_data
 from sql import ZohoSqlClient, MatterSqlClient
 from colorama import Fore
-from utils import remove_punctions, save_logs
+from utils import remove_punctions, replace_escape_characters, save_logs
 from decouple import config
 
 
@@ -128,8 +128,6 @@ class MattermostClient:
                             else:
                                 channel_id_reverse = MatterSqlClient.sql_post(
                                         table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
-
-                            # channel_extras(channel_id,rec_ids, channel_members, rec_ids_reverse, prefrence_keys)
                             try:
                                 channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_ids_reverse, prefrence_keys)
                             except:
@@ -207,7 +205,7 @@ class MattermostClient:
                                 # try:  # bot users are not in mattermost users table
                                     user_id = MatterSqlClient.sql_get('users', 'id', f"username like '%{remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])}%'")
                                     if user_id:
-                                        posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}'")
+                                        posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}' and message='{replace_escape_characters(json.loads(zoho_cliq_message['content'])['text'])}' and createat={zoho_cliq_message['time']}")
                                         type_text_values = [self.generate_id(
                                             26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], mm_channel['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
                                         if posts_db:
@@ -223,7 +221,7 @@ class MattermostClient:
                                         print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
                                 # except:
                                 #     pass
-                            if zoho_cliq_message['type'] == 'file':
+                            elif zoho_cliq_message['type'] == 'file':
                                 content = json.loads(zoho_cliq_message['content'])
                                 file = content['file']
                                 if file['type'] in ['image/jpeg', 'image/jpg', 'image/png']:
@@ -252,6 +250,43 @@ class MattermostClient:
         except Exception as e:
             save_logs(e)
 
+    def delete_dup(self):
+        channels = MatterSqlClient.sql_get('channels', 'name,id')
+        names = []
+        for channel in channels:
+            name = channel['name'].split("__")
+            if len(name)>=2:
+                names.append(name)
+        data = {tuple(sorted(item)) for item in names}
+        for d in data:
+            query = f'''
+                select id from channels where name like '%{d[0]}%' and name like '%{d[1]}%'
+            '''
+            res = MatterSqlClient.raw_query(query, type="get")
+            del_query = f"""
+            delete from channels where id = (
+                select a.chid
+                from 
+                (
+                select count(id) as id  , channelid as chid from posts where channelid in ('{res[0][0]}','{res[1][0]}') group by 2 order by count(id) asc limit 1
+                )a
+                )
+            """
+            del_q = f"""
+                delete from channelmembers where channelid = (
+                select a.chid
+                from 
+                (
+                select count(id) as id  , channelid as chid from posts where channelid in ('{res[0][0]}','{res[1][0]}') group by 2 order by count(id) asc limit 1
+                )a
+                )
+            """
+            MatterSqlClient.raw_query(del_query)
+            MatterSqlClient.raw_query(del_q)
+        # print(data)
+
+                
+
     def main(self):
         self.insert_channels()
         time.sleep(1)
@@ -262,6 +297,7 @@ class MattermostClient:
         self.insert_posts()
         time.sleep(1)
         self.delete_extrachannel()
+        self.delete_dup()
 
 
 if __name__ == "__main__":
