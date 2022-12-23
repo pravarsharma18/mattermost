@@ -98,9 +98,9 @@ class ZohoClient:
                 time.sleep(30)
                 
             if not token:
-                url = 'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id'
+                url = 'api/v2/channels'
             else:
-                url = f'maintenanceapi/v2/channels?fields=name,channel_id,total_message_count,participant_count,creation_time,description,creator_id&next_token={token}'
+                url = f'api/v2/channels?next_token={token}'
             s, channels = self.get_chat_api(url)
             
             print(f"Channel url: {url}, Status code: {s}")
@@ -256,7 +256,6 @@ class ZohoClient:
                 except Exception as e:
                     print(f"Exception in getting channel Members from api : {chat['chat_id']}")
                     save_logs(e)
-
             if chats.line_num == 1 or chats.line_num == 0:
                 a = False
             f.close()
