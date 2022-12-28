@@ -101,11 +101,11 @@ class ZohoApiClient:
                     for recipient in chat["recipients_summary"]:
                         try:
                             user_email_id = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{recipient['user_id']}'")
-                            recipient_emails.append(user_email[0].get("email_id", ""))
+                            recipient_emails.append(user_email_id[0].get("email_id", ""))
                         except Exception as e:
                             print(f"User {recipient['user_id']}:{recipient['name']} not found for chat {chat['chat_id']}")
                     
-                    data.update({"recipients_summary": json.dumps(recipient_emails)})
+                    data.update({"recipients_summary": json.dumps(list(set(recipient_emails)))})
 
                     db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
                     if db_cliq_chats:
