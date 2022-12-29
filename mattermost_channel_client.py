@@ -202,8 +202,11 @@ class MattermostClient:
                     try:
                         if mm_channel.get('chat_id') == zoho_cliq_message.get('chat_id'):
                             if zoho_cliq_message['type'] == 'text':
-                                # try:  # bot users are not in mattermost users table
-                                    user_id = MatterSqlClient.sql_get('users', 'id', f"username like '%{remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])}%'")
+                                user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{json.loads(zoho_cliq_message['sender'])['id']}'")
+                                if user_email:
+                                    user_email_id = user_email[0]["email_id"]
+                                    user_id = MatterSqlClient.sql_get('users', 'id', f"email='{user_email_id}'")
+                                    
                                     if user_id:
                                         posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}' and message='{replace_escape_characters(json.loads(zoho_cliq_message['content'])['text'])}' and createat={zoho_cliq_message['time']}")
                                         type_text_values = [self.generate_id(
@@ -219,8 +222,8 @@ class MattermostClient:
                                                     table_name='posts', attrs=posts_keys, values=type_text_values)
                                     else:
                                         print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
-                                # except:
-                                #     pass
+                                else:
+                                    print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
                             elif zoho_cliq_message['type'] == 'file':
                                 content = json.loads(zoho_cliq_message['content'])
                                 file = content['file']
