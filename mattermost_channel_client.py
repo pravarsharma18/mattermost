@@ -190,49 +190,48 @@ class MattermostClient:
     def insert_posts(self):
             posts_keys = MatterSqlClient.get_columns("posts")
             fileinfo_keys = MatterSqlClient.get_columns('fileinfo')
-            zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages')
+            # zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages')
             mm_channels = MatterSqlClient.sql_get('channels')
             text = 1
             xlsx_counter = 1
             img_counter = 1
             for mm_channel in mm_channels:
-                # channel_id = MatterSqlClient.sql_get(
-                #     'channels', 'name, id', f"chat_id='{zoho_cliq_chat['chat_id']}'")
+                zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages', params=f"chat_id='{mm_channel.get('chat_id')}'")
                 for zoho_cliq_message in zoho_cliq_messages:
                     try:
-                        if mm_channel.get('chat_id') == zoho_cliq_message.get('chat_id'):
-                            if zoho_cliq_message['type'] == 'text':
-                                user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{json.loads(zoho_cliq_message['sender'])['id']}'")
-                                if user_email:
-                                    user_email_id = user_email[0]["email_id"]
-                                    user_id = MatterSqlClient.sql_get('users', 'id', f"email='{user_email_id}'")
-                                    
-                                    if user_id:
-                                        posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}' and message='{replace_escape_characters(json.loads(zoho_cliq_message['content'])['text'])}' and createat={zoho_cliq_message['time']}")
-                                        type_text_values = [self.generate_id(
-                                            26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], mm_channel['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
-                                        if posts_db:
-                                            if posts_db[0]['channelid'] != mm_channel['id'] and posts_db[0]['userid'] != user_id[0]['id']:
-                                                text +=1
-                                                MatterSqlClient.sql_post(
-                                                    table_name='posts', attrs=posts_keys, values=type_text_values)
-                                        else:
+                        # if mm_channel.get('chat_id') == zoho_cliq_message.get('chat_id'):
+                        if zoho_cliq_message['type'] == 'text':
+                            user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{json.loads(zoho_cliq_message['sender'])['id']}'")
+                            if user_email:
+                                user_email_id = user_email[0]["email_id"]
+                                user_id = MatterSqlClient.sql_get('users', 'id', f"email='{user_email_id}'")
+                                
+                                if user_id:
+                                    posts_db = MatterSqlClient.sql_get("posts", "channelid,userid", f"channelid='{mm_channel['id']}' and userid='{user_id[0]['id']}' and message='{replace_escape_characters(json.loads(zoho_cliq_message['content'])['text'])}' and createat={zoho_cliq_message['time']}")
+                                    type_text_values = [self.generate_id(
+                                        26), zoho_cliq_message['time'], zoho_cliq_message['time'], 0, user_id[0]['id'], mm_channel['id'], "", "", json.loads(zoho_cliq_message['content'])['text'], "", json.dumps({"disable_group_highlight": True}), "", json.dumps([]), json.dumps([]), json.dumps(False), 0, json.dumps(False), json.dumps(None)]
+                                    if posts_db:
+                                        if posts_db[0]['channelid'] != mm_channel['id'] and posts_db[0]['userid'] != user_id[0]['id']:
                                             text +=1
                                             MatterSqlClient.sql_post(
-                                                    table_name='posts', attrs=posts_keys, values=type_text_values)
+                                                table_name='posts', attrs=posts_keys, values=type_text_values)
                                     else:
-                                        print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
+                                        text +=1
+                                        MatterSqlClient.sql_post(
+                                                table_name='posts', attrs=posts_keys, values=type_text_values)
                                 else:
                                     print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
-                            elif zoho_cliq_message['type'] == 'file':
-                                content = json.loads(zoho_cliq_message['content'])
-                                file = content['file']
-                                if file['type'] in ['image/jpeg', 'image/jpg', 'image/png']:
-                                    image_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, img_counter)
-                                    img_counter += 1
-                                elif file['type'] in ['application/x-ooxml', 'application/pdf', 'application/zip', 'text/plain']:
-                                    xlsx_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file['type'], xlsx_counter)
-                                    xlsx_counter +=1
+                            else:
+                                print(f"zoho_cliq_message['sender'])['name'] {remove_punctions(json.loads(zoho_cliq_message['sender'])['name'])} not found in users db")
+                        elif zoho_cliq_message['type'] == 'file':
+                            content = json.loads(zoho_cliq_message['content'])
+                            file = content['file']
+                            if file['type'] in ['image/jpeg', 'image/jpg', 'image/png']:
+                                image_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, img_counter)
+                                img_counter += 1
+                            elif file['type'] in ['application/x-ooxml', 'application/pdf', 'application/zip', 'text/plain']:
+                                xlsx_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file['type'], xlsx_counter)
+                                xlsx_counter +=1
                     except Exception as e:
                         print(f"Exception in inserting posts:  {zoho_cliq_message['chat_id']}")
                         save_logs(e)
@@ -300,7 +299,7 @@ class MattermostClient:
         self.insert_posts()
         time.sleep(1)
         self.delete_extrachannel()
-        self.delete_dup()
+        # self.delete_dup()
 
 
 if __name__ == "__main__":
