@@ -11,6 +11,8 @@ from zoho_cliq_client import ZohoClient
 import os
 from dotenv import load_dotenv
 
+Image.MAX_IMAGE_PIXELS = None
+
 load_dotenv()
 mattermost_base_path = config('MATTERMOST_PATH')
 # {mattermost_base_path}
