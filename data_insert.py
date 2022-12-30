@@ -215,28 +215,40 @@ def channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_
         else:
             MatterSqlClient.sql_post(
                     table_name='channelmembers', attrs=channel_members, values=member_1)
+        
+        channel_member2 = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id}' and userid='{rec_ids[1]}'")
+        member_2 = [channel_id, rec_ids[1], "",
+                    0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+        if channel_member2:
+            if channel_member2[0]['channelid'] != channel_id and channel_member2[0]['userid'] != rec_ids[1]:
+                MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_2)
+        else:
+            MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_2)
     
-    channel_member1_reverse = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id_reverse}' and userid='{rec_ids_reverse[0]}'")
-    member_1_reverse = [channel_id_reverse, rec_ids_reverse[0], "",
-                0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
-    if channel_member1_reverse:
-        if channel_member1_reverse[0]['channelid'] != channel_id_reverse and channel_member1_reverse[0]['userid'] != rec_ids_reverse[0]:
+    if channel_id_reverse:
+        channel_member1_reverse = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id_reverse}' and userid='{rec_ids_reverse[0]}'")
+        member_1_reverse = [channel_id_reverse, rec_ids_reverse[0], "",
+                    0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+        if channel_member1_reverse:
+            if channel_member1_reverse[0]['channelid'] != channel_id_reverse and channel_member1_reverse[0]['userid'] != rec_ids_reverse[0]:
+                MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
+        else:
             MatterSqlClient.sql_post(
                 table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
-    else:
-        MatterSqlClient.sql_post(
-            table_name='channelmembers', attrs=channel_members, values=member_1_reverse)
 
-    channel_member2 = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id}' and userid='{rec_ids[1]}'")
-    member_2 = [channel_id, rec_ids[1], "",
-                0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
-    if channel_member2:
-        if channel_member2[0]['channelid'] != channel_id and channel_member2[0]['userid'] != rec_ids[1]:
+        channel_member2 = MatterSqlClient.sql_get("channelmembers", "channelid,userid", f"channelid='{channel_id_reverse}' and userid='{rec_ids_reverse[1]}'")
+        member_2 = [channel_id_reverse, rec_ids_reverse[1], "",
+                    0, 0, 0, json.dumps(notify_props), get_timestamp(), json.dumps(True), json.dumps(False), json.dumps(True), 0, 0]
+        if channel_member2:
+            if channel_member2[0]['channelid'] != channel_id_reverse and channel_member2[0]['userid'] != rec_ids_reverse[1]:
+                MatterSqlClient.sql_post(
+                    table_name='channelmembers', attrs=channel_members, values=member_2)
+        else:
             MatterSqlClient.sql_post(
-                table_name='channelmembers', attrs=channel_members, values=member_2)
-    else:
-        MatterSqlClient.sql_post(
-                table_name='channelmembers', attrs=channel_members, values=member_2)
+                    table_name='channelmembers', attrs=channel_members, values=member_2)
 
     # chdelete from channels where type='D' and id not inname='channelmembers', attrs=channel_members, values=member_2_reverse)
 
