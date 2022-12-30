@@ -241,34 +241,52 @@ def channel_extras(channel_id,rec_ids, channel_members, channel_id_reverse, rec_
     # chdelete from channels where type='D' and id not inname='channelmembers', attrs=channel_members, values=member_2_reverse)
 
     # insert in prefrence Table
-    prefrence_values_channel_show1 = [rec_ids[0],
-                                        "direct_channel_show", rec_ids[1], "true"]
-    MatterSqlClient.sql_post(
-        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
+    try:
+        prefrence_values_channel_show1 = [rec_ids[0],
+                                            "direct_channel_show", rec_ids[1], "true"]
+        MatterSqlClient.sql_post(
+            table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show1)
+    except:
+        pass
 
-    prefrence_values_open_time1 = [rec_ids[0],
-                                    "channel_open_time", channel_id, get_timestamp()]
-    MatterSqlClient.sql_post(
-        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1)
-    
-    prefrence_values_open_time1_reverse = [rec_ids_reverse[0],
-                                    "channel_open_time", channel_id_reverse, get_timestamp()]
-    MatterSqlClient.sql_post(
-        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1_reverse)
+    try:
+        prefrence_values_open_time1 = [rec_ids[0],
+                                        "channel_open_time", channel_id, get_timestamp()]
+        MatterSqlClient.sql_post(
+            table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1)
+    except:
+        pass
 
-    prefrence_values_channel_show2 = [rec_ids[1],
-                                        "direct_channel_show", rec_ids[0], "true"]
-    MatterSqlClient.sql_post(
-        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
+    try:
+        prefrence_values_open_time1_reverse = [rec_ids_reverse[0],
+                                        "channel_open_time", channel_id_reverse, get_timestamp()]
+        MatterSqlClient.sql_post(
+            table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time1_reverse)
+    except:
+        pass
 
-    prefrence_values_open_time2 = [rec_ids[1],
-                                    "channel_open_time", channel_id, get_timestamp()]
+    try:
+        prefrence_values_channel_show2 = [rec_ids[1],
+                                            "direct_channel_show", rec_ids[0], "true"]
+        MatterSqlClient.sql_post(
+            table_name='preferences', attrs=prefrence_keys, values=prefrence_values_channel_show2)
+    except:
+        pass
 
-    MatterSqlClient.sql_post(
-        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2)
-    
-    prefrence_values_open_time2_reverse = [rec_ids_reverse[1],
-                                    "channel_open_time", channel_id_reverse, get_timestamp()]
+    try:
+        prefrence_values_open_time2 = [rec_ids[1],
+                                        "channel_open_time", channel_id, get_timestamp()]
 
-    MatterSqlClient.sql_post(
-        table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2_reverse)
+        MatterSqlClient.sql_post(
+            table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2)
+    except:
+        pass
+
+    try:
+        prefrence_values_open_time2_reverse = [rec_ids_reverse[1],
+                                        "channel_open_time", channel_id_reverse, get_timestamp()]
+
+        MatterSqlClient.sql_post(
+            table_name='preferences', attrs=prefrence_keys, values=prefrence_values_open_time2_reverse)
+    except:
+        pass
