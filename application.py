@@ -105,6 +105,9 @@ class ZohoApiClient:
                         except Exception as e:
                             print(f"User {recipient['user_id']}:{recipient['name']} not found for chat {chat['chat_id']}")
                     
+                    if len(recipient_emails) <= 1:
+                        continue
+
                     data.update({"recipients_summary": json.dumps(list(set(recipient_emails)))})
 
                     db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")

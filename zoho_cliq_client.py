@@ -337,10 +337,7 @@ class ZohoClient:
                     messages = response_messages.json()
                     count += 1
                     try:  # some data has no chats, to eliminate that error
-                        if not messages:
-                            a = False
-                            continue
-                        if (last_msg_time and len(messages) <= 1) or s !=200:
+                        if not messages or (last_msg_time and len(messages) <= 1) or s != 200:
                             a = False
                             continue
                         last_msg_time = messages[-1].get('time')
