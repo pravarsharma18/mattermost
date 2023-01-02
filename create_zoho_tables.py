@@ -217,6 +217,18 @@ class CreateZohoTables:
         ZohoSqlClient.zohomydb.commit()
         print(Fore.GREEN + "## Cliq mattermost_fileinfo_data table created ##")
 
+    def tokens(self):
+        mycursor = ZohoSqlClient.zohomydb.cursor()
+
+        query = '''
+            CREATE TABLE if not exists tokens (
+                token text, is_processed bool DEFAULT false
+            );
+        '''
+        mycursor.execute(query)
+        ZohoSqlClient.zohomydb.commit()
+        print(Fore.GREEN + "## Cliq tokens table created ##")
+
     def main(self):
         self.portals()
         self.projects()
@@ -231,6 +243,7 @@ class CreateZohoTables:
         self.cliq_logs()
         self.mattermost_post_data()
         self.mattermost_fileinfo_data()
+        self.tokens()
 
 
 if __name__ == '__main__':

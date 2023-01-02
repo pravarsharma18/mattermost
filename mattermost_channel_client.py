@@ -195,7 +195,7 @@ class MattermostClient:
             text = 1
             file_counter = 1
             for mm_channel in mm_channels:
-                zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages', params=f"chat_id='{mm_channel.get('chat_id')}'")
+                zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages', params=f"chat_id='{mm_channel.get('chat_id')}' and is_processed = false")
                 for zoho_cliq_message in zoho_cliq_messages:
                     try:
                         # if mm_channel.get('chat_id') == zoho_cliq_message.get('chat_id'):

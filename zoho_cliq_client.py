@@ -315,7 +315,7 @@ class ZohoClient:
         print(Fore.GREEN + "Channel chats Saved")
 
     def bulk_messages(self):
-            chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id')
+            chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', 'is_processed = false')
             count = 1
             a = True
             for chat_id in chat_ids:
@@ -368,6 +368,8 @@ class ZohoClient:
                     except Exception as e:
                         print(e)
                         print("Exception while saving chat data: ", chat_id)
+
+                ZohoSqlClient.sql_update(table_name="cliq_chats", set="is_processed = true", where=f"chat_id = '{chat_id['chat_id']}'")
             print(Fore.GREEN + "Messages Inserted")
 
     def main(self):
