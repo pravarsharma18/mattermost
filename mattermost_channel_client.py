@@ -94,7 +94,7 @@ class MattermostClient:
                             rec_ids.append(user_id[0]['id'])
                         else:
                             print(f"{recipient_summary} is not found in users db mattermost")
-                    if len(rec_ids) == 2:
+                    if len(rec_ids) == 2 and not chat['chat_id'].startswith('CT'):
                         # rec_ids = rec_ids
                         rec_ids_reverse = rec_ids[::-1]
                         rec_ids_str = "__".join(rec_ids)
@@ -304,4 +304,4 @@ class MattermostClient:
 
 if __name__ == "__main__":
     print(Fore.YELLOW + "\n<========Saving Mattermost channels Data in DB=========>\n")
-    c = MattermostClient().main()
+    c = MattermostClient().insert_chats()
