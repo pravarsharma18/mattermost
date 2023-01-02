@@ -121,18 +121,12 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
                 path = f"{date_folder}/teams/noteam/channels/{id_channel}/users/{sender_id[0]['id']}/{xml_fileinfo_id}/"
                 file_path = f"{mattermost_base_path}{path}" 
 
+                extension = file['name'].split('.')[-1]
+                minetype = type
                 if type == "application/x-ooxml":
-                    extension = file['name'].split('.')[-1]
                     minetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                elif type == "application/pdf":
-                    extension = file['name'].split('.')[-1]
-                    minetype = type
-                elif type == "application/zip":
-                    extension = file['name'].split('.')[-1]
-                    minetype = type
-                elif type == "text/plain":
-                    extension = file['name'].split('.')[-1]
-                    minetype = type
+                elif type == "application/ooxml":
+                    minetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
                 type_xml_fileinfo_values = [
                     xml_fileinfo_id, sender_id[0]['id'], posts_id, zoho_cliq_message['time'], zoho_cliq_message['time'], 0, f'{path}{file["name"]}', "", "", file['name'], extension, file['dimensions']['size'], minetype, 0, 0, json.dumps(False), json.dumps(None), "", "", json.dumps(False)]

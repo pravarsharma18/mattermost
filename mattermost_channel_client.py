@@ -194,7 +194,7 @@ class MattermostClient:
             mm_channels = MatterSqlClient.sql_get('channels')
             text = 1
             xlsx_counter = 1
-            img_counter = 1
+            file_counter = 1
             for mm_channel in mm_channels:
                 zoho_cliq_messages = ZohoSqlClient.sql_get('cliq_messages', params=f"chat_id='{mm_channel.get('chat_id')}'")
                 for zoho_cliq_message in zoho_cliq_messages:
@@ -226,12 +226,12 @@ class MattermostClient:
                         elif zoho_cliq_message['type'] == 'file':
                             content = json.loads(zoho_cliq_message['content'])
                             file = content['file']
-                            if file['type'] in ['image/jpeg', 'image/jpg', 'image/png']:
-                                image_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, img_counter)
-                                img_counter += 1
-                            elif file['type'] in ['application/x-ooxml', 'application/pdf', 'application/zip', 'text/plain']:
-                                xlsx_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file['type'], xlsx_counter)
-                                xlsx_counter +=1
+                            if "image" in file['type']:
+                                image_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file_counter)
+                                file_counter += 1
+                            else:
+                                xlsx_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file['type'], file_counter)
+                                file_counter +=1
                     except Exception as e:
                         print(f"Exception in inserting posts:  {zoho_cliq_message['chat_id']}")
                         save_logs(e)
