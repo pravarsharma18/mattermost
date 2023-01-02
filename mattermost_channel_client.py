@@ -230,6 +230,8 @@ class MattermostClient:
                                 image_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file_counter)
                             else:
                                 xlsx_data(mm_channel, zoho_cliq_message, file, posts_keys, fileinfo_keys, file['type'], file_counter)
+                        
+                        ZohoSqlClient.sql_update(table_name="cliq_messages", set="is_processed = true", where=f"chat_id = '{mm_channel.get('chat_id')}'")
                     except Exception as e:
                         print(f"Exception in inserting posts:  {zoho_cliq_message['chat_id']}")
                         save_logs(e)
@@ -302,4 +304,4 @@ class MattermostClient:
 
 if __name__ == "__main__":
     print(Fore.YELLOW + "\n<========Saving Mattermost channels Data in DB=========>\n")
-    c = MattermostClient().insert_chats()
+    c = MattermostClient().main()

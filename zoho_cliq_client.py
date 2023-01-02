@@ -353,8 +353,7 @@ class ZohoClient:
                                     values)]
                                 data_values.insert(0, chat_id["chat_id"])
                                 keys.insert(0, "chat_id")
-                                
-                                db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}'")
+                                db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}' and is_processed=false")
                                 if db_cliq_messages:
                                     if db_cliq_messages[0]['id'] != data['id']:
                                         ZohoSqlClient.sql_post(

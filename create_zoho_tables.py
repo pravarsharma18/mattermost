@@ -140,7 +140,7 @@ class CreateZohoTables:
         query = '''
             CREATE TABLE if not exists cliq_chats (
                 recipients_summary text, title varchar(255),chat_id varchar(255),participant_count int,total_message_count int,
-                creator_id varchar(255),creation_time varchar(255),last_modified_time varchar(255)
+                creator_id varchar(255),creation_time varchar(255),last_modified_time varchar(255), is_processed bool DEFAULT false
             );
         '''
         # query = '''
@@ -162,7 +162,7 @@ class CreateZohoTables:
         query = '''
             CREATE TABLE if not exists cliq_messages (
                 chat_id varchar(255), ack_key varchar(255), content text, id varchar(255), is_read boolean, revision int, 
-                sender text, time varchar(255), type varchar(255)
+                sender text, time varchar(255), type varchar(255), is_processed bool DEFAULT false
             );
         '''
         mycursor.execute(query)
@@ -192,6 +192,30 @@ class CreateZohoTables:
         mycursor.execute(query)
         ZohoSqlClient.zohomydb.commit()
         print(Fore.GREEN + "## Cliq Log table created ##")
+    
+    def mattermost_post_data(self):
+        mycursor = ZohoSqlClient.zohomydb.cursor()
+
+        query = '''
+            CREATE TABLE if not exists mattermost_post_data (
+                id varchar(255), createat bigint, updateat bigint, deleteat bigint, userid varchar(255), channelid varchar(255), rootid varchar(255), originalid varchar(255), message text, type varchar(255), props text, hashtags varchar(255), filenames varchar(255), fileids varchar(255), hasreactions bool, editat int, ispinned bool, remoteid varchar(255)
+            );
+        '''
+        mycursor.execute(query)
+        ZohoSqlClient.zohomydb.commit()
+        print(Fore.GREEN + "## Cliq mattermost_post_data table created ##")
+
+    def mattermost_fileinfo_data(self):
+        mycursor = ZohoSqlClient.zohomydb.cursor()
+
+        query = '''
+            CREATE TABLE if not exists mattermost_fileinfo_data (
+                id varchar(255), creatorid varchar(255), postid varchar(255), createat bigint, updateat bigint, deleteat bigint, path text, thumbnailpath varchar(255), previewpath varchar(255), name varchar(255), extension varchar(255), size int, mimetype varchar(255), width int, height int, haspreviewimage bool, minipreview varchar(255), content varchar(255), remoteid varchar(255), archived bool
+            );
+        '''
+        mycursor.execute(query)
+        ZohoSqlClient.zohomydb.commit()
+        print(Fore.GREEN + "## Cliq mattermost_fileinfo_data table created ##")
 
     def main(self):
         self.portals()
@@ -205,6 +229,8 @@ class CreateZohoTables:
         self.cliq_messages()
         self.cliq_channel_members()
         self.cliq_logs()
+        self.mattermost_post_data()
+        self.mattermost_fileinfo_data()
 
 
 if __name__ == '__main__':
