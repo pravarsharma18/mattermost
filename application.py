@@ -96,11 +96,7 @@ class ZohoApiClient:
                         row = list(channel.values())
                         values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                         row)]
-                        if db_channels:
-                            if db_channels[0]['channel_id'] != channel['channel_id']:
-                                ZohoSqlClient.sql_post(
-                                    table_name="cliq_channels", attrs=keys, values=values)
-                        else:
+                        if not db_channels:
                             ZohoSqlClient.sql_post(
                                 table_name="cliq_channels", attrs=keys, values=values)
                     except Exception as e:
@@ -158,15 +154,11 @@ class ZohoApiClient:
 
                     db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
                     if db_cliq_chats:
-                        if db_cliq_chats[0]['chat_id'] != chat['chat_id']:
-                            ZohoSqlClient.sql_post(
-                                table_name="cliq_chats", attrs=list(data.keys()), values=list(data.values()))
-                        else:
-                            set_value = []
-                            for key, value in data.items():
-                                set_value.append(f"{key} = '{value}'")
-                            set_value = ",".join(set_value)
-                            ZohoSqlClient.sql_update(table_name="cliq_chats", set=set_value, where=f"chat_id = '{chat['chat_id']}'")
+                        set_value = []
+                        for key, value in data.items():
+                            set_value.append(f"{key} = '{value}'")
+                        set_value = ",".join(set_value)
+                        ZohoSqlClient.sql_update(table_name="cliq_chats", set=set_value, where=f"chat_id = '{chat['chat_id']}'")
                     else:
                         ZohoSqlClient.sql_post(
                             table_name="cliq_chats", attrs=list(data.keys()), values=list(data.values()))
