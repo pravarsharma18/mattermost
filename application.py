@@ -3,7 +3,7 @@ from decouple import config
 import requests
 from typing import Tuple
 from sql import ZohoSqlClient
-from utils import remove_punctions
+from utils import remove_punctions, create_new_column
 from datetime import datetime
 import time
 import json
@@ -30,6 +30,7 @@ class ZohoApiClient:
         self.token_data = None
 
         self.get_auth_token()
+        self.get_channels()
         self.get_personal_chats()
     
     def get_timestamp_from_date(self, date) -> int:
@@ -66,6 +67,49 @@ class ZohoApiClient:
         }
         r = requests.get(url, headers=headers)
         return r.status_code, r
+    
+    def get_channels(self) -> None:
+        a = True
+        token = ""
+        count = 1
+        while a:
+            if count == 4:
+                count = 1
+                print("Channel Api is throttled, wait for 30 seconds....")
+                time.sleep(30)
+                
+            if not token:
+                url = 'api/v2/channels'
+            else:
+                url = f'api/v2/channels?next_token={token}'
+            s, channels = self.get_chat_api(url)
+            
+            print(f"Channel url: {url}, Status code: {s}")
+            count += 1
+            data = channels.json()
+            if data.get('channels'):
+                for channel in data.get('channels'):
+                    try:
+                        keys = list(channel.keys())
+
+                        db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
+                        row = list(channel.values())
+                        values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                        row)]
+                        if db_channels:
+                            if db_channels[0]['channel_id'] != channel['channel_id']:
+                                ZohoSqlClient.sql_post(
+                                    table_name="cliq_channels", attrs=keys, values=values)
+                        else:
+                            ZohoSqlClient.sql_post(
+                                table_name="cliq_channels", attrs=keys, values=values)
+                    except Exception as e:
+                        print(f"Exception in saving cliq_channel: {channel['name']}")
+            if data.get('has_more'):
+                token = data.get("next_token")
+            else:
+                a = False
+                break
 
     def get_personal_chats(self) -> None:
         a = True
