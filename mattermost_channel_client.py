@@ -48,7 +48,7 @@ class MattermostClient:
                                 values = [
                                     self.generate_id(26), self.get_timestamp_from_date(channel.get('creation_time')), 
                                     self.get_timestamp_from_date(channel.get('creation_time')), 0, team['id'],"O", display_channel_name, 
-                                    channel_name, "", chat_id[0]['chat_id'], self.get_timestamp_from_date(channel.get('creation_time')), 
+                                    channel_name, "", chat_id, self.get_timestamp_from_date(channel.get('creation_time')), 
                                     channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0]
                                 channels = MatterSqlClient.sql_get("channels", "teamid,name", f"teamid='{team['id']}' and name='{channel_name}'")
                                 if channels:
