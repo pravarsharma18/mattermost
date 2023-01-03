@@ -69,6 +69,8 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
                     posts_columns = MatterSqlClient.get_columns('posts')
                     fileinfo_columns = MatterSqlClient.get_columns('fileinfo')
                     ZohoSqlClient.sql_post(table_name="mattermost_post_data", attrs=posts_columns, values=image_posts_values)
+                    fileinfo_columns.insert(0, "zoho_file_id")
+                    type_images_fileinfo_values.insert(0, file['id'])
                     ZohoSqlClient.sql_post(table_name="mattermost_fileinfo_data", attrs=fileinfo_columns, values=type_images_fileinfo_values)
                     return
 
@@ -168,6 +170,8 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
                     posts_columns = MatterSqlClient.get_columns('posts')
                     fileinfo_columns = MatterSqlClient.get_columns('fileinfo')
                     ZohoSqlClient.sql_post(table_name="mattermost_post_data", attrs=posts_columns, values=xml_posts_values)
+                    fileinfo_columns.insert(0, "zoho_file_id")
+                    type_xml_fileinfo_values.insert(0, file['id'])
                     ZohoSqlClient.sql_post(table_name="mattermost_fileinfo_data", attrs=fileinfo_columns, values=type_xml_fileinfo_values)
                     return
 

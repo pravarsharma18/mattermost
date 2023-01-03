@@ -210,7 +210,8 @@ class CreateZohoTables:
 
         query = '''
             CREATE TABLE if not exists mattermost_fileinfo_data (
-                id varchar(255), creatorid varchar(255), postid varchar(255), createat bigint, updateat bigint, deleteat bigint, path text, thumbnailpath varchar(255), previewpath varchar(255), name varchar(255), extension varchar(255), size int, mimetype varchar(255), width int, height int, haspreviewimage bool, minipreview varchar(255), content varchar(255), remoteid varchar(255), archived bool
+                id varchar(255), creatorid varchar(255), postid varchar(255), createat bigint, updateat bigint, deleteat bigint, path text, thumbnailpath varchar(255), previewpath varchar(255), name varchar(255), extension varchar(255), size int, mimetype varchar(255), width int, height int, haspreviewimage bool, minipreview varchar(255), content varchar(255), remoteid varchar(255), archived bool,
+                zoho_file_id text
             );
         '''
         mycursor.execute(query)

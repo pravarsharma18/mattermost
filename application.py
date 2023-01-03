@@ -51,6 +51,8 @@ class ZohoApiClient:
         
         new_request = requests.post(url)
         self.token_data = new_request.json()
+
+        ZohoSqlClient.sql_post(table_name="tokens", attrs=["token"], values=[json.dumps(self.token_data)])
         print(self.token_data)
 
         access_token = self.token_data.get('access_token')
