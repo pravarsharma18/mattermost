@@ -17,7 +17,7 @@ class DeleteMattermostTables:
         print(Fore.RED + "**TeamMembers Deleted**")
 
     def truncate_channles(self) -> None:
-        MatterSqlClient.sql_delete("channels")
+        MatterSqlClient.sql_delete("channels", "name !='town-square'")
         print(Fore.RED + "**Channels Deleted**")
 
     def truncate_channlemembers(self) -> None:
