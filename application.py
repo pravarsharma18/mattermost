@@ -78,10 +78,9 @@ class ZohoApiClient:
                 print("Channel Api is throttled, wait for 30 seconds....")
                 time.sleep(30)
                 
-            if not token:
-                url = 'api/v2/channels'
-            else:
-                url = f'api/v2/channels?next_token={token}'
+            url = 'api/v2/channels?limit=100'
+            if token:
+                url += f'&next_token={token}'
             s, channels = self.get_chat_api(url)
             
             print(f"Channel url: {url}, Status code: {s}")

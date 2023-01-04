@@ -46,14 +46,14 @@ class ZohoClient:
 
 
     def get_all_users(self):
-        s, cliq_users = self.get_chat_api('api/v2/users?fields=all')
+        url = 'api/v2/users?fields=all&limit=200'
+        s, cliq_users = self.get_chat_api(url)
         data = cliq_users.json()
         users = []
         users.extend(data['data'])
         if data['has_more']:
             while data['has_more']:
-                s, cliq_users = self.get_chat_api(
-                    f'api/v2/users?fields=all&next_token={data["next_token"]}')
+                s, cliq_users = self.get_chat_api(f'{url}&next_token={data["next_token"]}')
                 data = cliq_users.json()
                 users.extend(data['data'])
 
@@ -97,10 +97,9 @@ class ZohoClient:
                 print("Channel Api is throttled, wait for 30 seconds....")
                 time.sleep(30)
                 
-            if not token:
-                url = 'api/v2/channels'
-            else:
-                url = f'api/v2/channels?next_token={token}'
+            url = 'api/v2/channels?limit=100'
+            if token:
+                url += f'&next_token={token}'
             s, channels = self.get_chat_api(url)
             
             print(f"Channel url: {url}, Status code: {s}")
@@ -191,10 +190,10 @@ class ZohoClient:
                 chat_count = 1
                 print("Chat's Api is throttled, wait for 30 seconds....")
                 time.sleep(30)
+            
+            chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time&limit=100'
             if next_token:
-                chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time&next_token={next_token}'
-            else:
-                chat_url = f'maintenanceapi/v2/chats?fields=title,chat_id,participant_count,total_message_count,creator_id,creation_time,last_modified_time'
+                chat_url += f'&next_token={next_token}'
             s, response_chats = self.get_chat_api(
                 chat_url, header={"Content-Type": 'text/csv'})
             
@@ -315,62 +314,61 @@ class ZohoClient:
         print(Fore.GREEN + "Channel chats Saved")
 
     def bulk_messages(self):
-            chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', 'is_processed = false')
-            count = 1
+        chat_ids = ZohoSqlClient.sql_get('cliq_chats', 'chat_id', 'is_processed = false')
+        count = 1
+        a = True
+        for chat_id in chat_ids:
+            last_msg_time = ""
             a = True
-            for chat_id in chat_ids:
-                # message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages'
-                last_msg_time = ""
-                a = True
-                while a:
-                    if last_msg_time:
-                        message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages?fromtime={last_msg_time}'
-                    else:
-                        message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages'
-                    print(message_url)
-                    if count == 12:
-                        count = 1
-                        print("Maintenance Chat Api is throttled, wait for 30 seconds....")
-                        time.sleep(30)
-                    print("*****",count)
-                    s, response_messages = self.get_chat_api(message_url)  # maintenance
-                    messages = response_messages.json()
-                    count += 1
-                    try:  # some data has no chats, to eliminate that error
-                        if not messages or (last_msg_time and len(messages) <= 1) or s != 200:
-                            a = False
-                            continue
-                        last_msg_time = messages[-1].get('time')
-                        for data in messages:
-                            try:
-                                keys = list(data.keys())
-                                columns = ZohoSqlClient.get_columns("cliq_messages")
-                                # Alter table columns as per field from api.
-                                create_new_column(keys, columns, 'cliq_messages')
-                            
-                                values = list(data.values())
-                                data_values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                                    values)]
-                                data_values.insert(0, chat_id["chat_id"])
-                                keys.insert(0, "chat_id")
-                                db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}' and is_processed=false")
-                                if db_cliq_messages:
-                                    if db_cliq_messages[0]['id'] != data['id']:
-                                        ZohoSqlClient.sql_post(
-                                            table_name='cliq_messages', attrs=keys, values=data_values)
-                                else:
+            while a:
+                if last_msg_time:
+                    message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages?fromtime={last_msg_time}'
+                else:
+                    message_url = f'maintenanceapi/v2/chats/{chat_id["chat_id"]}/messages'
+                print(message_url)
+                if count == 12:
+                    count = 1
+                    print("Maintenance Chat Api is throttled, wait for 30 seconds....")
+                    time.sleep(30)
+                print("*****",count)
+                s, response_messages = self.get_chat_api(message_url)  # maintenance
+                messages = response_messages.json()
+                count += 1
+                try:  # some data has no chats, to eliminate that error
+                    if not messages or (last_msg_time and len(messages) <= 1) or s != 200:
+                        a = False
+                        continue
+                    last_msg_time = messages[-1].get('time')
+                    for data in messages:
+                        try:
+                            keys = list(data.keys())
+                            columns = ZohoSqlClient.get_columns("cliq_messages")
+                            # Alter table columns as per field from api.
+                            create_new_column(keys, columns, 'cliq_messages')
+                        
+                            values = list(data.values())
+                            data_values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
+                                values)]
+                            data_values.insert(0, chat_id["chat_id"])
+                            keys.insert(0, "chat_id")
+                            db_cliq_messages = ZohoSqlClient.sql_get("cliq_messages", "id", f"id='{data['id']}' and is_processed=false")
+                            if db_cliq_messages:
+                                if db_cliq_messages[0]['id'] != data['id']:
                                     ZohoSqlClient.sql_post(
-                                            table_name='cliq_messages', attrs=keys, values=data_values)
-                            except Exception as e:
-                                print(f"Exception in saving cliq_messages: {data['id']}")
-                                save_logs(e)
-                        print(f"Saved chats for chat_id: {chat_id}")
-                    except Exception as e:
-                        print(e)
-                        print("Exception while saving chat data: ", chat_id)
+                                        table_name='cliq_messages', attrs=keys, values=data_values)
+                            else:
+                                ZohoSqlClient.sql_post(
+                                        table_name='cliq_messages', attrs=keys, values=data_values)
+                        except Exception as e:
+                            print(f"Exception in saving cliq_messages: {data['id']}")
+                            save_logs(e)
+                    print(f"Saved chats for chat_id: {chat_id}")
+                except Exception as e:
+                    print(e)
+                    print("Exception while saving chat data: ", chat_id)
 
-                ZohoSqlClient.sql_update(table_name="cliq_chats", set="is_processed = true", where=f"chat_id = '{chat_id['chat_id']}'")
-            print(Fore.GREEN + "Messages Inserted")
+            ZohoSqlClient.sql_update(table_name="cliq_chats", set="is_processed = true", where=f"chat_id = '{chat_id['chat_id']}'")
+        print(Fore.GREEN + "Messages Inserted")
 
     def main(self):
         """
