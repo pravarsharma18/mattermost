@@ -44,6 +44,11 @@ class MattermostClient:
                 email = user.get('email')
             else:
                 email = user.get('email_id')
+            
+            username = user['name']
+            if "trooinbound.com" in email:
+                username += ".tib"
+
             if user.get('active'):
                 if not user.get('active'):
                     delete_at = self.get_timestamp()
@@ -74,7 +79,7 @@ class MattermostClient:
                 "useAutomaticTimezone": "true"
             }
             values = [self.generate_id(26), self.get_timestamp(
-            ), self.get_timestamp(), delete_at, user['name'], "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", email, "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
+            ), self.get_timestamp(), delete_at, username, "$2a$10$DuCXLy27NqVbs/6j6fY5/.hWXqCtmlS0QAodGp4p7D2IGRNBKJgiG", "", email, "", "", "", json.dumps(False), roles, json.dumps(False), json.dumps({}), json.dumps(notify_props), 0, 0, 0, 'en', "", "", json.dumps(False), json.dumps(time_zone)]
 
             li.append(dict(zip(keys.split(','), values)))
         return li
