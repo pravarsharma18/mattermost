@@ -137,7 +137,7 @@ class ZohoClient:
 
     def get_channel_members(self):
         keys = ZohoSqlClient.get_columns('cliq_channel_members')
-        channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id')
+        channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id', 'is_processed = false')
 
         count = 1
         for channel in channels:
@@ -179,6 +179,7 @@ class ZohoClient:
             except Exception as e:
                 print(f"Exception in getting channel Members from api : {channel['channel_id']}")
                 save_logs(e)
+            ZohoSqlClient.sql_update(table_name="cliq_channels", set="is_processed = true", where=f"channel_id = '{channel['channel_id']}'")
         print(Fore.GREEN + "Channel Members Saved")
 
     def bulk_conversation(self):

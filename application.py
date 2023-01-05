@@ -116,6 +116,7 @@ class ZohoApiClient:
             if modified_before:
                 url += f"&modified_before={modified_before}"
             
+            print(f"Chat url: {url}, Status code: {s}")
             s, response_chats = self.get_chat_api(url)
             chats = response_chats.json().get("chats", [])
 
@@ -127,6 +128,10 @@ class ZohoApiClient:
                 modified_before = self.get_timestamp_from_date(chat["last_modified_time"])
                 try:
                     user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{chat['creator_id']}'")
+                    if not user_email:
+                        print(f"User {chat['creator_id']} not active anymore hence skiping it")
+                        continue
+
                     data = {
                         "recipients_summary": "[]",
                         "title": remove_punctions(chat["name"]),
@@ -152,13 +157,7 @@ class ZohoApiClient:
                     data.update({"recipients_summary": json.dumps(list(set(recipient_emails)))})
 
                     db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
-                    if db_cliq_chats:
-                        set_value = []
-                        for key, value in data.items():
-                            set_value.append(f"{key} = '{value}'")
-                        set_value = ",".join(set_value)
-                        ZohoSqlClient.sql_update(table_name="cliq_chats", set=set_value, where=f"chat_id = '{chat['chat_id']}'")
-                    else:
+                    if not db_cliq_chats:
                         ZohoSqlClient.sql_post(
                             table_name="cliq_chats", attrs=list(data.keys()), values=list(data.values()))
 

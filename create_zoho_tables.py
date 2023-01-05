@@ -127,7 +127,7 @@ class CreateZohoTables:
         query = '''
             CREATE TABLE if not exists cliq_channels (
                 name varchar(255),channel_id varchar(255), total_message_count int, participant_count int,
-                creation_time varchar(255), description text, creator_id varchar(255)
+                creation_time varchar(255), description text, creator_id varchar(255), is_processed bool DEFAULT false
             );
         '''
         mycursor.execute(query)
