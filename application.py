@@ -18,7 +18,7 @@ def index():
     state = request.args.get("state")
     print(state, code)
     zoho_client = ZohoApiClient(state, code)
-    return "<p>Syncing in progress</p>"
+    return "<p>Syncing in progress. You can close the window.</p>"
 
 
 class ZohoApiClient:
