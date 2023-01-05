@@ -123,7 +123,7 @@ class ZohoApiClient:
 
             if not chats or (modified_before and len(chats) <= 1) or s != 200:
                 a = False
-                continue
+                break
 
             for chat in chats:
                 modified_before = self.get_timestamp_from_date(chat["last_modified_time"])
@@ -165,5 +165,9 @@ class ZohoApiClient:
                 except Exception as e:
                     print(f"Exception in getting chat Members from api : {chat['chat_id']}")
                     print(e)
+            
+            if len(chats) < 100:
+                a = False
+                break
 
 
