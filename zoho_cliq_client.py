@@ -264,11 +264,10 @@ class ZohoClient:
     def add_channels_to_chats(self):
         channels = ZohoSqlClient.sql_get('cliq_channels', 'name,channel_id,chat_id,total_message_count,participant_count,creation_time,last_modified_time,creator_id')
 
-        count = 1
         for channel in channels:
             try:
                 if channel["chat_id"]:
-                    user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{channel['creator_id']}'")
+                    user_email = ZohoSqlClient.sql_get("cliq_channel_members", "email_id", f"user_id='{channel['creator_id']}'")
                     data = {
                         "recipients_summary": "[]",
                         "title": remove_punctions(channel["name"]),
@@ -279,21 +278,13 @@ class ZohoClient:
                         "creation_time": self.get_timestamp_from_date(channel["creation_time"]),
                         "last_modified_time": self.get_timestamp_from_date(channel["last_modified_time"]),
                     }
-
-                    if count == 12:
-                        count = 1
-                        print("Members's Api is throttled, wait for 30 seconds....")
-                        time.sleep(30)
                     
-                    s, response_chat_members = self.get_chat_api(
-                        f'maintenanceapi/v2/chats/{channel["chat_id"]}/members?fields=email_id', header={"Content-Type": 'text/csv'})
+                    chat_members = ZohoSqlClient.sql_get('cliq_channel_members', 'email_id', f"channel_id='{channel['channel_id']}'")
+                    members = set()
+                    for chat_member in chat_members:
+                        members.add(chat_member["email_id"])
                     
-                    print(f"Chat ID: {channel['chat_id']}, Chat message Status Code: {s}")
-                    chat_members = response_chat_members.text
-                    count += 1
-
-                    if "html" not in chat_members:
-                        data["recipients_summary"] = json.dumps(chat_members.split()[1:])
+                    data["recipients_summary"] = json.dumps(list(members))
                     
                     db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{channel['chat_id']}'")
                     if db_cliq_chats:
