@@ -49,7 +49,7 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
             
                 r = requests.get(
                     f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-                        "Authorization": f"Bearer {access_token}",
+                        "Authorization": f"Zoho-oauthtoken {access_token}",
                         "Content-Type": 'application/json'
                     })
                 
@@ -60,7 +60,7 @@ def image_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, i
                         os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
                         r = requests.get(
                             f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-                                "Authorization": f"Bearer {new_access_token}",
+                                "Authorization": f"Zoho-oauthtoken {new_access_token}",
                                 "Content-Type": 'application/json'
                             })
                 
@@ -150,7 +150,7 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
 
                 r = requests.get(
                     f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-                        "Authorization": f"Bearer {access_token}",
+                        "Authorization": f"Zoho-oauthtoken {access_token}",
                         "Content-Type": 'application/json'
                     })
                 
@@ -161,7 +161,7 @@ def xlsx_data(channel_id, zoho_cliq_message, file, posts_keys, fileinfo_keys, ty
                         os.environ['ZOHO_CLIQ_API_KEY'] = new_access_token
                         r = requests.get(
                             f"https://cliq.zoho.in/api/v2/files/{file['id']}", headers={
-                                "Authorization": f"Bearer {new_access_token}",
+                                "Authorization": f"Zoho-oauthtoken {new_access_token}",
                                 "Content-Type": 'application/json'
                             })
                 
