@@ -116,8 +116,9 @@ class ZohoApiClient:
             if modified_before:
                 url += f"&modified_before={modified_before}"
             
-            print(f"Chat url: {url}, Status code: {s}")
             s, response_chats = self.get_chat_api(url)
+
+            print(f"Chat url: {url}, Status code: {s}")
             chats = response_chats.json().get("chats", [])
 
             if not chats or (modified_before and len(chats) <= 1) or s != 200:
