@@ -41,9 +41,14 @@ class MattermostClient:
                         display_channel_name = channel.get('name')
                         channel_name = remove_punctions(display_channel_name).replace(".", "-")
                         chat_id = channel["chat_id"]
-                        if chat_id:                        
-                            creator_id = MatterSqlClient.sql_get(
-                                "users", "id", f"username='{remove_punctions(channel['creator_name'])}'")
+                        if chat_id:
+                            user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{channel['creator_id']}'")
+                            if not user_email:
+                                print(f"channel['creator_id'] {channel['creator_id']} not found in cliq users")
+                                print(f"channel['creator_id'] {remove_punctions(channel['creator_name'])} not found in cliq users")
+                                continue
+
+                            creator_id = MatterSqlClient.sql_get("users", "id", f"email='{user_email[0]['email_id']}'")
                             if creator_id:
                                 values = [
                                     self.generate_id(26), self.get_timestamp_from_date(channel.get('creation_time')), 
@@ -51,11 +56,7 @@ class MattermostClient:
                                     channel_name, "", chat_id, self.get_timestamp_from_date(channel.get('creation_time')), 
                                     channel.get('total_message_count'), 0, creator_id[0]['id'], 0, 0]
                                 channels = MatterSqlClient.sql_get("channels", "teamid,name", f"teamid='{team['id']}' and name='{channel_name}'")
-                                if channels:
-                                    if channels[0]['teamid'] != team['id'] and channels[0]['name'] != channel_name:
-                                        MatterSqlClient.sql_post(
-                                            table_name='channels', attrs=keys, values=values)
-                                else:
+                                if not channels:
                                     MatterSqlClient.sql_post(
                                         table_name='channels', attrs=keys, values=values)
                             else:
@@ -105,19 +106,11 @@ class MattermostClient:
 
                             channels_db = MatterSqlClient.sql_get("channels", "name,purpose", f"name='{rec_ids_str}' and purpose='{chat['chat_id']}'")
                             channel_id = ""
-                            if channels_db:
-                                if channels_db[0]['name'] != rec_ids_str:
-                                    channel_id = MatterSqlClient.sql_post(
-                                        table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
-                            else:
+                            if not channels_db:
                                 channel_id = MatterSqlClient.sql_post(
                                         table_name='channels', attrs=channel_keys, values=channel_values, returning='id')
                             channels_db_reverse = MatterSqlClient.sql_get("channels", "name,purpose", f"name='{rec_ids_str_reverse}' and purpose='{chat['chat_id']}'")
-                            if channels_db_reverse:
-                                if channels_db_reverse[0]['name'] != rec_ids_str_reverse:
-                                    channel_id_reverse = MatterSqlClient.sql_post(
-                                        table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
-                            else:
+                            if not channels_db_reverse:
                                 channel_id_reverse = MatterSqlClient.sql_post(
                                         table_name='channels', attrs=channel_keys, values=channel_values_reverse, returning='id')
                             try:
@@ -163,11 +156,7 @@ class MattermostClient:
                                 values = [channel[0]['id'], user_id[0]['id'], "", 0, 0, 0, json.dumps(
                                     notify_props), self.get_timestamp(), json.dumps(True), schemeadmin, json.dumps(True), 0, 0]
 
-                                if channel_members:
-                                    if channel_members[0].get("channelid") != channel[0]['id'] and channel_members[0].get("userid") != user_id[0]['id']:
-                                        MatterSqlClient.sql_post(
-                                            table_name="channelmembers", attrs=keys, values=values)
-                                else:
+                                if not channel_members:
                                     MatterSqlClient.sql_post(
                                             table_name="channelmembers", attrs=keys, values=values)
                             else:
