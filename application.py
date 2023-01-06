@@ -2,8 +2,8 @@ from flask import Flask, request
 from decouple import config
 import requests
 from typing import Tuple
-from sql import ZohoSqlClient
-from utils import remove_punctions, create_new_column
+from sql import DatabaseClient
+from utils import remove_punctions
 from datetime import datetime
 import time
 import json
@@ -28,10 +28,12 @@ class ZohoApiClient:
         self.state = state
         self.code = code
         self.token_data = None
+        self.db_connection = DatabaseClient()
 
         self.get_auth_token()
         self.get_channels()
         self.get_personal_chats()
+        self.db_connection.close_db()
     
     def get_timestamp_from_date(self, date) -> int:
         if date != 'NaN':
@@ -53,7 +55,7 @@ class ZohoApiClient:
         new_request = requests.post(url)
         self.token_data = new_request.json()
 
-        ZohoSqlClient.sql_post(table_name="tokens", attrs=["token"], values=[json.dumps(self.token_data)])
+        self.db_connection.sql_post(table_name="tokens", attrs=["token"], values=[json.dumps(self.token_data)])
         print(self.token_data)
 
         access_token = self.token_data.get('access_token')
@@ -91,12 +93,12 @@ class ZohoApiClient:
                     try:
                         keys = list(channel.keys())
 
-                        db_channels = ZohoSqlClient.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
+                        db_channels = self.db_connection.sql_get("cliq_channels", "channel_id", f"channel_id='{channel['channel_id']}'")
                         row = list(channel.values())
                         values = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
                         row)]
                         if not db_channels:
-                            ZohoSqlClient.sql_post(
+                            self.db_connection.sql_post(
                                 table_name="cliq_channels", attrs=keys, values=values)
                     except Exception as e:
                         print(f"Exception in saving cliq_channel: {channel['name']}")
@@ -128,7 +130,7 @@ class ZohoApiClient:
             for chat in chats:
                 modified_before = self.get_timestamp_from_date(chat["last_modified_time"])
                 try:
-                    user_email = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{chat['creator_id']}'")
+                    user_email = self.db_connection.sql_get("cliq_users", "email_id", f"id='{chat['creator_id']}'")
                     if not user_email:
                         print(f"User {chat['creator_id']} not active anymore hence skiping it")
                         continue
@@ -147,7 +149,7 @@ class ZohoApiClient:
                     recipient_emails = []
                     for recipient in chat["recipients_summary"]:
                         try:
-                            user_email_id = ZohoSqlClient.sql_get("cliq_users", "email_id", f"id='{recipient['user_id']}'")
+                            user_email_id = self.db_connection.sql_get("cliq_users", "email_id", f"id='{recipient['user_id']}'")
                             recipient_emails.append(user_email_id[0].get("email_id", ""))
                         except Exception as e:
                             print(f"User {recipient['user_id']}:{recipient['name']} not found for chat {chat['chat_id']}")
@@ -157,9 +159,9 @@ class ZohoApiClient:
 
                     data.update({"recipients_summary": json.dumps(list(set(recipient_emails)))})
 
-                    db_cliq_chats = ZohoSqlClient.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
+                    db_cliq_chats = self.db_connection.sql_get("cliq_chats", "chat_id", f"chat_id='{chat['chat_id']}'")
                     if not db_cliq_chats:
-                        ZohoSqlClient.sql_post(
+                        self.db_connection.sql_post(
                             table_name="cliq_chats", attrs=list(data.keys()), values=list(data.values()))
 
                 except Exception as e:
@@ -169,5 +171,4 @@ class ZohoApiClient:
             if len(chats) < 100:
                 a = False
                 break
-
 
