@@ -154,9 +154,11 @@ class ZohoClient:
                 if "html" in data: 
                    members = []
                 else:
-                    members = data.split()[1:]
+                    members = data.split("\n")[1:]
 
                 for member in members:
+                    if not member:
+                        continue
                     try:
                         name, email_id, user_id = member.split(",")
                         table_data = {
