@@ -147,7 +147,7 @@ class ZohoClient:
                     print("Channel member Api is throttled, wait for 30 seconds....")
                     time.sleep(30)
                 s, member = self.get_chat_api(
-                    f"maintenanceapi/v2/chats/{channel['chat_id']}/members?fields=name,email_id", header={"Content-Type": 'text/csv'})
+                    f"maintenanceapi/v2/chats/{channel['chat_id']}/members?fields=name,email_id,user_id", header={"Content-Type": 'text/csv'})
                 print(f"Channel member for ID: {channel['channel_id']}, Status code: {s}")
                 count += 1
                 data = member.text
