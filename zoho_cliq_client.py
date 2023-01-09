@@ -137,7 +137,7 @@ class ZohoClient:
 
     def get_channel_members(self):
         keys = ZohoSqlClient.get_columns('cliq_channel_members')
-        channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id', 'is_processed = false')
+        channels = ZohoSqlClient.sql_get('cliq_channels', 'channel_id,chat_id', 'is_processed = false')
 
         count = 1
         for channel in channels:
