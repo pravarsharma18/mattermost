@@ -147,39 +147,45 @@ class ZohoClient:
                     print("Channel member Api is throttled, wait for 30 seconds....")
                     time.sleep(30)
                 s, member = self.get_chat_api(
-                    f"api/v2/channels/{channel['channel_id']}/members")
+                    f"maintenanceapi/v2/chats/{channel['chat_id']}/members?fields=name,email_id", header={"Content-Type": 'text/csv'})
                 print(f"Channel member for ID: {channel['channel_id']}, Status code: {s}")
                 count += 1
-                data = member.json()
-                members = data.get('members')
-                if members:
-                    for member in members:
-                        try:
-                            values = list(member.values())
+                data = member.text
+                if "html" in data: 
+                   members = []
+                else:
+                    members = data.split()[1:]
 
-                            keys = list(member.keys())
-                            columns = ZohoSqlClient.get_columns("cliq_channel_members")
-                            # Alter table columns as per field from api.
-                            create_new_column(keys, columns, "cliq_channel_members")
-                            
-                            li = [json.dumps(v) if (isinstance(v, dict) or isinstance(v, bool) or isinstance(v, list) or isinstance(v, int)) else v for i, v in enumerate(
-                                    values)]
-                            li.insert(0,channel['channel_id'])
-                            keys.insert(0, "channel_id")
-                            db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email_id,channel_id", f"email_id='{member['email_id']}' and channel_id='{channel['channel_id']}'")
-                            if db_channel_members:
-                                if db_channel_members[0]['email_id'] != member['email_id'] and db_channel_members[0]['channel_id'] != channel['channel_id']:
-                                    ZohoSqlClient.sql_post(
-                                        table_name='cliq_channel_members', attrs=keys, values=li)
-                            else:
+                for member in members:
+                    try:
+                        name, email_id, user_id = member.split(",")
+                        table_data = {
+                            "channel_id": channel['channel_id'],
+                            "user_id": user_id,
+                            "email_id": email_id,
+                            "name": name,
+                            "user_role": "member"
+                        }
+
+                        keys = list(table_data.keys())
+                        columns = ZohoSqlClient.get_columns("cliq_channel_members")
+                        # Alter table columns as per field from api.
+                        create_new_column(keys, columns, "cliq_channel_members")
+                        
+                        db_channel_members = ZohoSqlClient.sql_get("cliq_channel_members", "email_id,channel_id", f"email_id='{email_id}' and channel_id='{channel['channel_id']}'")
+                        if db_channel_members:
+                            if db_channel_members[0]['email_id'] != email_id and db_channel_members[0]['channel_id'] != channel['channel_id']:
                                 ZohoSqlClient.sql_post(
-                                        table_name='cliq_channel_members', attrs=keys, values=li)
-                        except Exception as e:
-                            print(f"Exception in saving members: {member['name']}")
+                                    table_name='cliq_channel_members', attrs=keys, values=list(table_data.values()))
+                        else:
+                            ZohoSqlClient.sql_post(
+                                    table_name='cliq_channel_members', attrs=keys, values=list(table_data.values()))
+                    except Exception as e:
+                        print(f"Exception in saving members: {member['name']}")
+                ZohoSqlClient.sql_update(table_name="cliq_channels", set="is_processed = true", where=f"channel_id = '{channel['channel_id']}'")
             except Exception as e:
                 print(f"Exception in getting channel Members from api : {channel['channel_id']}")
                 save_logs(e)
-            ZohoSqlClient.sql_update(table_name="cliq_channels", set="is_processed = true", where=f"channel_id = '{channel['channel_id']}'")
         print(Fore.GREEN + "Channel Members Saved")
 
     def bulk_conversation(self):
